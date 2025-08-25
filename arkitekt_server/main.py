@@ -9,6 +9,10 @@ from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 import typer
+import signal
+import atexit
+import tempfile
+import os
 from arkitekt_server.config import (
     ArkitektServerConfig,
     BaseServiceConfig,
@@ -17,6 +21,7 @@ from arkitekt_server.config import (
     EmailConfig,
     User,
 )
+from arkitekt_server.create import create_server
 from typer.core import TyperGroup
 from arkitekt_server.diff import run_dry_run_diff
 from arkitekt_server.config import generate_name, Organization
@@ -391,6 +396,152 @@ def update():
         # Print the error message (this will show stderr live)
         click.secho("❌ Failed to start docker compose:", fg="red", bold=True)
         raise typer.Exit(code=e.returncode)
+
+
+@app.command()
+def ephemeral(
+    port: int = typer.Option(
+        24891, help="HTTP port to expose (will be auto-assigned if not specified)"
+    ),
+    https_port: int = typer.Option(
+        None, help="HTTPS port to expose (disabled by default for ephemeral)"
+    ),
+    defaults: bool = typer.Option(
+        True, help="Use default configuration without prompts"
+    ),
+):
+    """
+    Create and start a temporary Arkitekt server instance.
+
+    This command creates a temporary server configuration in a temp directory,
+    starts it with Docker Compose, and automatically cleans up when interrupted.
+    Perfect for testing or development purposes.
+    """
+    temp_dir = None
+    docker_process = None
+
+    def cleanup():
+        """Clean up temporary resources"""
+        if docker_process and docker_process.poll() is None:
+            console.print("🧹 Stopping Docker Compose services...", style="yellow")
+            try:
+                # Stop docker compose in the temp directory
+                if temp_dir and temp_dir.exists():
+                    subprocess.run(
+                        ["docker", "compose", "down", "--remove-orphans"],
+                        cwd=temp_dir,
+                        check=True,
+                        capture_output=True,
+                    )
+                    console.print("✅ Docker services stopped", style="green")
+            except subprocess.CalledProcessError as e:
+                console.print(f"⚠️ Error stopping Docker services: {e}", style="yellow")
+
+        if temp_dir and temp_dir.exists():
+            console.print("🗑️ Cleaning up temporary directory...", style="yellow")
+            try:
+                import shutil
+
+                shutil.rmtree(temp_dir)
+                console.print("✅ Temporary directory cleaned up", style="green")
+            except Exception as e:
+                console.print(
+                    f"⚠️ Error cleaning up temp directory: {e}", style="yellow"
+                )
+
+    def signal_handler(signum, frame):
+        """Handle interrupt signals"""
+        console.print("\n🛑 Received interrupt signal, cleaning up...", style="yellow")
+        cleanup()
+        raise typer.Exit(0)
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Register cleanup function to run on exit
+    atexit.register(cleanup)
+
+    try:
+        # Create temporary directory
+        temp_dir = Path(tempfile.mkdtemp(prefix="arkitekt_ephemeral_"))
+        console.print(
+            f"📁 Created temporary server directory: {temp_dir}", style="blue"
+        )
+
+        # Create default configuration
+        config = ArkitektServerConfig() if defaults else prompt_config(console)
+
+        # Override ports if specified
+        if port is not None:
+            config.gateway.exposed_http_port = port
+        else:
+            # Auto-assign a random port to avoid conflicts
+            import random
+
+            config.gateway.exposed_http_port = random.randint(8000, 9000)
+
+        # Handle HTTPS configuration for ephemeral setup
+        if https_port is not None:
+            config.gateway.exposed_https_port = https_port
+            config.gateway.ssl = True
+        else:
+            # For ephemeral setup, assign a random HTTPS port but disable SSL to avoid conflicts
+            import random
+
+            config.gateway.exposed_https_port = random.randint(9000, 10000)
+            config.gateway.ssl = False
+
+        # Ensure we use volumes instead of bind mounts for ephemeral setup
+        config.minio.mount = None
+        config.db.mount = None
+
+        console.print(
+            f"🚀 Creating ephemeral Arkitekt server on port {config.gateway.exposed_http_port}...",
+            style="green",
+        )
+
+        # Generate server configuration files
+        create_server(temp_dir, config)
+
+        # Show important configuration info
+        console.print("📋 Server Configuration:", style="bold blue")
+        console.print(f"  • Admin User: {config.global_admin}", style="blue")
+        console.print(
+            f"  • Admin Password: {config.global_admin_password}", style="blue"
+        )
+        console.print(
+            f"  • HTTP Port: {config.gateway.exposed_http_port}", style="blue"
+        )
+        console.print(
+            f"  • Server URL: http://localhost:{config.gateway.exposed_http_port}",
+            style="blue",
+        )
+        if config.gateway.ssl and config.gateway.exposed_https_port:
+            console.print(
+                f"  • HTTPS Port: {config.gateway.exposed_https_port}", style="blue"
+            )
+            console.print(
+                f"  • Secure URL: https://localhost:{config.gateway.exposed_https_port}",
+                style="blue",
+            )
+
+        # Start docker compose
+        console.print("🐳 Starting Docker Compose services...", style="green")
+        docker_process = subprocess.Popen(
+            ["docker", "compose", "up"], cwd=temp_dir, text=True
+        )
+
+        # Wait for the process to complete
+        docker_process.wait()
+
+    except KeyboardInterrupt:
+        console.print("\n🛑 Received keyboard interrupt", style="yellow")
+    except Exception as e:
+        console.print(f"❌ Error running ephemeral server: {e}", style="red")
+        raise typer.Exit(1)
+    finally:
+        cleanup()
 
 
 def main():
