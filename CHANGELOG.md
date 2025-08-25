@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.6.0 (2025-08-25)
+
+### Features
+
+- Add ephemeral command
+  ([`65b8334`](https://github.com/arkitektio/arkitekt-server/commit/65b83348abba8b623c6fe6124e7bc58295641242))
+
+
 ## v1.5.0 (2025-07-24)
 
 
