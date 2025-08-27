@@ -28,11 +28,11 @@ def run_init_command(
 
 def run_building_command(app: Typer, runner: CliRunner):
     # Run the arkitekt build command
-    result = runner.invoke(app, ["build", "docker", "--yes"])
+    result = runner.invoke(app, ["build", "docker"])
 
     # Check that the command succeeded
     assert result.exit_code == 0, (
-        f"Command failed with exit code {result.exit_code}. Output: {result.stdout}"
+        f"Command failed with exit code {result.exit_code}. Output: {result.stderr + result.stdout}"
     )
 
     # Check that the config file was created

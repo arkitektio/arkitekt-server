@@ -1,5 +1,6 @@
 import difflib
 import secrets
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Dict
@@ -159,6 +160,44 @@ def create_basic_config_values(
     return config_values
 
 
+def clone_repo(github_repo: str, target_dir: str, base_dir: Path):
+    """Clone a GitHub repository into a target directory."""
+
+    if (Path(base_dir) / Path(target_dir)).exists():
+        # Check if the directory is the github repo of this service
+        if (Path(base_dir) / Path(target_dir) / ".git").exists():
+            # check if origin is remote
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                check=True,
+                capture_output=True,
+                cwd=Path(base_dir) / Path(target_dir),
+            )
+            if result.returncode == 0:
+                if result.stdout:
+                    if not result.stdout.strip().decode("utf-8") == github_repo:
+                        raise ValueError(
+                            f"Already cloned repository at path {Path(base_dir) / Path(target_dir)} of already present repository does not match expected {github_repo}. Got: {result.stdout.strip()}. Please remove directory manually before proceeding"
+                        )
+                    else:
+                        print(
+                            f"Directory {target_dir} is already a git repository with matching remote origin, skipping clone...."
+                        )
+                else:
+                    raise ValueError(
+                        f"Directory {target_dir} is already a git repository without remote origin. Please check this before proceeding."
+                    )
+
+            else:
+                raise ValueError(
+                    f"Directory {target_dir} is a git repository without remote origin. Please check this before proceeding."
+                )
+    else:
+        subprocess.run(
+            ["git", "clone", github_repo, target_dir], check=True, cwd=base_dir
+        )
+
+
 def create_config(
     service_name: str, config_values: Dict[str, Any], base_path: Path
 ) -> None:
@@ -172,7 +211,7 @@ def create_config(
 
 
 def build_default_service(
-    config: ArkitektServerConfig, service: BaseService
+    path: Path, config: ArkitektServerConfig, service: BaseService
 ) -> dict[str, Any]:
     """
     Build a default Docker Compose service definition.
@@ -187,13 +226,37 @@ def build_default_service(
     Returns:
         A dictionary representing a Docker Compose service definition
     """
-    return {
+
+    docker_service = {
         "image": service.image,
         "command": service.build_run_command(),
         "depends_on": ["redis", "db", "minio"],
         "stop_grace_period": "2s",
         "volumes": [f"./configs/{service.host}.yaml:/workspace/config.yaml"],
+        "deploy": {
+            "restart_policy": {
+                "condition": "on-failure",
+                "delay": "10s",
+                "max_attempts": 10,
+                "window": "300s",
+            }
+        },
     }
+
+    if service.mount_github:
+        cloned_repo = f"./repos/{service.host}"
+        clone_repo(
+            github_repo=service.github_repo, target_dir=cloned_repo, base_dir=path
+        )
+
+        docker_service["volumes"].append(
+            f"./repos/{service.host}:/workspace/repos/{service.host}"
+        )
+
+        del docker_service["image"]
+        docker_service["build"] = cloned_repo
+
+    return docker_service
 
 
 def create_fluss_config(config: ArkitektServerConfig, base_path: Path) -> None:
@@ -620,7 +683,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
 
     # Configure individual Arkitekt services
     if config.fluss.enabled:
-        services[config.fluss.host] = build_default_service(config, config.fluss)
+        services[config.fluss.host] = build_default_service(
+            tmpdir, config, config.fluss
+        )
 
         gconfig = create_basic_config_values(config, config.fluss)
         create_config(config.fluss.host, gconfig, tmpdir)
@@ -629,7 +694,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.kabinet.enabled:
-        services[config.kabinet.host] = build_default_service(config, config.kabinet)
+        services[config.kabinet.host] = build_default_service(
+            tmpdir, config, config.kabinet
+        )
 
         gconfig = create_basic_config_values(config, config.kabinet)
         create_config(config.kabinet.host, gconfig, tmpdir)
@@ -638,7 +705,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.elektro.enabled:
-        services[config.elektro.host] = build_default_service(config, config.elektro)
+        services[config.elektro.host] = build_default_service(
+            tmpdir, config, config.elektro
+        )
 
         gconfig = create_basic_config_values(config, config.elektro)
         create_config(config.elektro.host, gconfig, tmpdir)
@@ -647,7 +716,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.kraph.enabled:
-        services[config.kraph.host] = build_default_service(config, config.kraph)
+        services[config.kraph.host] = build_default_service(
+            tmpdir, config, config.kraph
+        )
 
         gconfig = create_basic_config_values(config, config.kraph)
         create_config(config.kraph.host, gconfig, tmpdir)
@@ -656,7 +727,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.alpaka.enabled:
-        services[config.alpaka.host] = build_default_service(config, config.alpaka)
+        services[config.alpaka.host] = build_default_service(
+            tmpdir, config, config.alpaka
+        )
 
         lok_config = create_basic_config_values(config, config.alpaka)
         create_config(config.alpaka.host, lok_config, tmpdir)
@@ -665,7 +738,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.mikro.enabled:
-        services[config.mikro.host] = build_default_service(config, config.mikro)
+        services[config.mikro.host] = build_default_service(
+            tmpdir, config, config.mikro
+        )
 
         lok_config = create_basic_config_values(config, config.mikro)
         create_config(config.mikro.host, lok_config, tmpdir)
@@ -674,7 +749,9 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
     if config.rekuest.enabled:
-        services[config.rekuest.host] = build_default_service(config, config.rekuest)
+        services[config.rekuest.host] = build_default_service(
+            tmpdir, config, config.rekuest
+        )
 
         lok_config = create_basic_config_values(config, config.rekuest)
         create_config(config.rekuest.host, lok_config, tmpdir)
@@ -682,13 +759,18 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
             service_to_instance_config(config.rekuest, "live.arkitekt.rekuest")
         )
 
+    exposed_ports = []
+
+    if config.gateway.exposed_http_port:
+        exposed_ports.append(f"{config.gateway.exposed_http_port}:80")
+
+    if config.gateway.exposed_https_port:
+        exposed_ports.append(f"{config.gateway.exposed_https_port}:443")
+
     # Configure Caddy reverse proxy/gateway
     services[config.gateway.host] = {
         "image": config.gateway.image,
-        "ports": [
-            f"{config.gateway.exposed_http_port}:80",
-            f"{config.gateway.exposed_https_port}:443",
-        ],
+        "ports": exposed_ports,
         "networks": [config.internal_network, "default"],
         "volumes": ["./configs/Caddyfile:/etc/caddy/Caddyfile"],
     }
@@ -699,24 +781,12 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
     mkkdirs.mkdir(parents=True, exist_ok=True)
     (tmpdir / "configs" / "Caddyfile").write_text(caddyfile)
 
-    # Create Lok service configuration
-    services[config.lok.host] = {
-        "command": config.lok.build_run_command(),
-        "image": config.lok.image,
-        "volumes": [f"./configs/{config.lok.host}.yaml:/workspace/config.yaml"],
-        "environment": {
-            "AUTHLIB_INSECURE_TRANSPORT": "true",
-        },
-        "stop_grace_period": "2s",
-        "deploy": {
-            "restart_policy": {
-                "condition": "on-failure",
-                "delay": "10s",
-                "max_attempts": 10,
-                "window": "300s",
-            }
-        },
+    default_lok_service = build_default_service(tmpdir, config, config.lok)
+    default_lok_service["environment"] = {
+        "AUTHLIB_INSECURE_TRANSPORT": "true",
     }
+    # Create Lok service configuration
+    services[config.lok.host] = default_lok_service
 
     instances.append(service_to_instance_config(config.lok, "live.arkitekt.lok"))
 

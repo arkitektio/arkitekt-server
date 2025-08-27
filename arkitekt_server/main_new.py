@@ -4,8 +4,9 @@ import sys
 import typer
 import rich_click as click
 from .logo import ASCI_LOGO
-from .commands import init, auth, build, inspect, service
-from .commands import core
+
+# Import command modules
+from .commands import init, auth, build, inspect, service, core
 
 app = typer.Typer(
     rich_markup_mode="rich",
@@ -34,7 +35,7 @@ app.command()(core.update)
 @app.command()
 def ephemeral(
     port: int | None = typer.Option(
-        23489, help="HTTP port to expose (will be auto-assigned if not specified)"
+        None, help="HTTP port to expose (will be auto-assigned if not specified)"
     ),
     https_port: int | None = typer.Option(
         None, help="HTTPS port to expose (disabled by default for ephemeral)"

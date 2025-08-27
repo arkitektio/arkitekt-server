@@ -326,6 +326,8 @@ class BaseService(Protocol):
     internal_port: int = Field(
         default=80,
     )
+    mount_github: bool
+    github_repo: str
 
     def get_buckets(self) -> Dict[str, BucketConfig]:
         """
@@ -799,11 +801,11 @@ class GatewayConfig(BaseServiceConfig):
         default=True,
         description="Whether to automatically force HTTPS for the Arkitekt server. If True, the server will redirect HTTP requests to HTTPS",
     )
-    exposed_http_port: int = Field(
+    exposed_http_port: int | None = Field(
         default=80,
         description="Port for the HTTP server. This is used to expose the HTTP server to the outside world",
     )
-    exposed_https_port: int = Field(
+    exposed_https_port: int | None = Field(
         default=443,
         description="Port for the HTTPS server. This is used to expose the HTTPS server to the outside world",
     )
@@ -952,7 +954,6 @@ class ArkitektServerConfig(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
-    port: int = Field(default=80, description="Port for http server")
     domain: str | None = Field(
         default=None,
         description="Domain for the Arkitekt server. If None, the server will run on localhost",
