@@ -232,7 +232,6 @@ background processes. This user will have the `bot` role in all organizations.
         memberships: list[Membership] = []
 
         for org in org_choices:
-            memberships.append(Membership(organization=org, roles=[]))
             roles: list[str] = []
 
             while not roles:

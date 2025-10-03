@@ -484,8 +484,8 @@ class KabinetConfig(BaseServiceConfig):
     )
     ensured_repositories: list[str] = Field(
         default_factory=lambda: [
-            "arkitektio-apps/ome:main",
-            "arkitektio-apps/renderer:main",
+            "jhnnsrs/ome:main",
+            "jhnnsrs/renderer:main",
         ],
         description="List of repositories that are ensured to be present in the Kabinet service",
     )

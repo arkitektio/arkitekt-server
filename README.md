@@ -6,43 +6,71 @@ A command-line tool for deploying and managing an Arkitekt server deployments. A
 
 Arkitekt Server is a deployment configuration management tool that simplifies the setup and management of the Arkitekt ecosystem. It generates Docker Compose configurations and handles the complex orchestration of multiple services including databases, message queues, object storage, and various scientific computing services.
 
-## Requirements
+## Quick Start: How to Start the Server
 
+### Prerequisites
 - Python 3.12+
 - Docker and Docker Compose
-- Git (for development mode with repository mounting)
+- UVX (recommended) or pip
 
-## Running
-
+### 1. Initialize Your Deployment
 ```bash
+# Default configuration (recommended for beginners)
 uvx arkitekt-server init default
+
+# Development configuration (with hot-reload support)
+uvx arkitekt-server init dev
+
+# Minimal configuration (lightweight setup)
+uvx arkitekt-server init minimal
 ```
 
-This command initializes a new Arkitekt Server deployment configuration and will guide your with a wizard for some basic configuration options.
-You can also specify different configurations such as `dev` for development mode or `minimal` for a lightweight setup.
-
+### 2. Configure Services (Optional)
 ```bash
+# Enable specific services you need
+uvx arkitekt-server service rekuest --enable
+uvx arkitekt-server service mikro --enable
+uvx arkitekt-server service kabinet --enable
+```
+
+### 3. Set Up Users
+```bash
+# Add users interactively
+uvx arkitekt-server auth user add
+```
+
+### 4. Build and Start
+```bash
+# Generate Docker Compose files
 uvx arkitekt-server build docker
-```
 
-This command generates the necessary Docker Compose files and directory based on your configuration.
-Run this command after modifying your configuration or when you want to deploy the services.
-
-```bash
-uvx arkitekt-server update
-```
-
-Especially useful whe you are on the development branch, this command updates the Docker images and configurations to the latest versions.
-
-```bash
+# Start all services
 uvx arkitekt-server start
 ```
 
-And lets go! This command starts all the services defined in the generated Docker Compose files. 
+### 5. Access Your Server
+Wait for services to initialize, then access via the Arkitekt Orkestrator interface at the configured URL.
 
+### Additional Commands
+```bash
+# Update services to latest versions
+uvx arkitekt-server update
 
-What a while wait for the services to be up and running, and then you can access the deployment through the Arkitekt Orkestrator interface.
-Thats it! You now have a fully functional Arkitekt Server deployment.
+# View configured users (development only)
+uvx arkitekt-server inspect users
+
+# Create temporary instance for testing
+uvx arkitekt-server ephemeral --port 8080
+```
+
+## Detailed Documentation
+
+For comprehensive documentation, see the `docs/` folder:
+
+- **[📚 Getting Started Guide](docs/starting.md)** - Step-by-step setup instructions
+- **[⚙️ Configuration Guide](docs/configuration.md)** - Detailed configuration options
+- **[🔧 Services Overview](docs/services.md)** - Complete service descriptions  
+- **[🏗️ Architecture Guide](docs/architecture.md)** - Deployment patterns and architecture
 
 ## Oh my god, I forgot all of my passwords!
 

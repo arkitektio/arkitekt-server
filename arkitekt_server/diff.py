@@ -566,7 +566,7 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
                 username=org.bot_name,
                 password=generate_alpha_numeric_string(12),
                 email=None,
-                active_organization=org.name,
+                active_organization=org.identifier,
                 memberships=[
                     Membership(
                         organization=org.identifier,
@@ -699,6 +699,18 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
         gconfig = create_basic_config_values(config, config.kabinet)
+
+        repo_map = []
+        for org in config.organizations:
+            repo_map.append(
+                {
+                    "organization": org.identifier,
+                    "repos": [repo for repo in config.kabinet.ensured_repositories],
+                }
+            )
+
+        gconfig["repo_map"] = repo_map
+
         create_config(config.kabinet.host, gconfig, tmpdir)
         instances.append(
             service_to_instance_config(config.kabinet, "live.arkitekt.kabinet")
@@ -721,6 +733,7 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
         gconfig = create_basic_config_values(config, config.kraph)
+
         create_config(config.kraph.host, gconfig, tmpdir)
         instances.append(
             service_to_instance_config(config.kraph, "live.arkitekt.kraph")
