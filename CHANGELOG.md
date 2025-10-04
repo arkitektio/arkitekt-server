@@ -1,9 +1,15 @@
 # CHANGELOG
 
 
+## v1.8.0 (2025-10-04)
+
+
 ## v1.7.0 (2025-10-03)
 
 ### Features
+
+- Add correct deployer
+  ([`01e825a`](https://github.com/arkitektio/arkitekt-server/commit/01e825a51ad1ea4f3ca1042ba71c2409b9d5ec64))
 
 - New version support
   ([`23cde7d`](https://github.com/arkitektio/arkitekt-server/commit/23cde7dadc4fc327a19c6934a054d0f1a4a38992))
