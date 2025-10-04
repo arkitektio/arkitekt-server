@@ -671,7 +671,8 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
                     "ARKITEKT_GATEWAY": f"http://{config.gateway.host}:{config.gateway.internal_port}",
                     "ARKITEKT_NETWORK": config.internal_network,
                     "INSTANCE_ID": "default",
-                    "DEPLOYER_ORGANIZATION": org.name,
+                    "ME_ID": f"{org.identifier}_default",
+                    "DEPLOYER_ORGANIZATION": org.identifier,
                 },
             }
 
