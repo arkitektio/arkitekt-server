@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.7.0 (2025-10-03)
+
+### Features
+
+- New version support
+  ([`23cde7d`](https://github.com/arkitektio/arkitekt-server/commit/23cde7dadc4fc327a19c6934a054d0f1a4a38992))
+
+
 ## v1.6.0 (2025-08-25)
 
 ### Features
