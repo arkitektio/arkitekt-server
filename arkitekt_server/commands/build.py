@@ -4,54 +4,42 @@ from pathlib import Path
 import typer
 from arkitekt_server.create import create_server
 from arkitekt_server.diff import run_dry_run_diff
-from arkitekt_server.commands import console, load_or_create_yaml_file
+from arkitekt_server.commands import console
+from arkitekt_server.utils import load_setup_file
 
-app = typer.Typer(help="Build deployments for Arkitekt server")
 
-
-@app.command()
-def docker(
+def build(
     dry_run: bool = typer.Option(
         False, help="Run a dry run to see what files would be created"
     ),
-    path: Path = Path("."),
+    path: Path = typer.Argument(Path("."), help="Path to the configuration file"),
 ):
-    """Build Docker Compose configuration."""
-    console.print("Building Docker Compose configuration...")
+    """Build the deployment configuration based on the selected backend."""
+    config_path = path / "arkitekt_server_config.yaml"
 
-    # Load the configuration
-    config = load_or_create_yaml_file("arkitekt_server_config.yaml")
+    try:
+        setup = load_setup_file(str(config_path))
+    except FileNotFoundError:
+        console.print(
+            f"[bold red]Configuration file not found at {config_path}. Please run 'arkitekt-server init' first.[/bold red]"
+        )
+        raise typer.Exit(code=1)
 
-    if dry_run:
-        console.print("Running dry run...")
-        from pathlib import Path
+    console.print(
+        f"Building configuration for backend: [bold green]{setup.backend}[/bold green]"
+    )
 
-        run_dry_run_diff(config, path)
+    if setup.backend in ["docker", "podman"]:
+        if dry_run:
+            console.print("Running dry run...")
+            run_dry_run_diff(setup.config, path)
+        else:
+            console.print("Building configuration files...")
+            create_server(path, setup.config)
+            console.print("[bold green]Build complete![/bold green]")
+
+    elif setup.backend == "kubernetes":
+        console.print("[bold yellow]Kubernetes build not yet implemented[/bold yellow]")
     else:
-        console.print("Building configuration files...")
-        # TODO: Implement actual build process
-        create_server(path, config)
-
-
-@app.command()
-def kubernetes(
-    dry_run: bool = typer.Option(
-        False, help="Run a dry run to see what files would be created"
-    ),
-):
-    """Build Kubernetes configuration."""
-    console.print("Building Kubernetes configuration...")
-    typer.echo("Kubernetes build not yet implemented")
-    # TODO: Implement Kubernetes build
-
-
-@app.command()
-def helm(
-    dry_run: bool = typer.Option(
-        False, help="Run a dry run to see what files would be created"
-    ),
-):
-    """Build Helm chart."""
-    console.print("Building Helm chart...")
-    typer.echo("Helm build not yet implemented")
-    # TODO: Implement Helm build
+        console.print(f"[bold red]Unknown backend: {setup.backend}[/bold red]")
+        raise typer.Exit(code=1)

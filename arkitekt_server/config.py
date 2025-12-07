@@ -243,6 +243,21 @@ class ForcePath(BaseModel):
 PathConfig = Union[LocalPath, ForcePath]
 
 
+class BaseAppConfig(BaseModel):
+    """
+    Base configuration for an Arkitekt server application.
+    This is used to define the common attributes and methods for all Arkitekt server applications.
+    """
+
+    image: str = Field(
+        description="Docker image of the app. This will be used to run the app in a container",
+    )
+    run_as_user: str | None = Field(
+        default=None,
+        description="User to run the app as. If None, the app will run as the standard bot account for the organization",
+    )
+
+
 class BaseServiceConfig(BaseModel):
     internal_port: int = Field(
         default=80,
@@ -1055,4 +1070,15 @@ class ArkitektServerConfig(BaseModel):
     kraph: KraphConfig = Field(
         default_factory=KraphConfig,
         description="Configuration for the Kraph service",
+    )
+
+
+class Setup(BaseModel):
+    backend: Literal["docker", "podman", "kubernetes"] = Field(
+        default="docker",
+        description="Backend for the Arkitekt server. This is used to determine how the server is deployed",
+    )
+    config: ArkitektServerConfig = Field(
+        default_factory=ArkitektServerConfig,
+        description="Configuration for the Arkitekt server",
     )

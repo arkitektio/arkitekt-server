@@ -15,53 +15,92 @@ Arkitekt Server is a deployment configuration management tool that simplifies th
 
 ### 1. Initialize Your Deployment
 ```bash
-# Default configuration (recommended for beginners)
-uvx arkitekt-server init default
+# Initialize in the current directory (interactive wizard)
+uvx arkitekt-server init --wizard
 
-# Development configuration (with hot-reload support)
-uvx arkitekt-server init dev
+# Initialize with a specific template (default, dev, minimal)
+uvx arkitekt-server init --template default
 
-# Minimal configuration (lightweight setup)
-uvx arkitekt-server init minimal
+# Initialize in a specific directory
+uvx arkitekt-server init --template dev ./my-server
 ```
 
-### 2. Configure Services (Optional)
+
+
+### 2. Set Up Users and Organizations
 ```bash
-# Enable specific services you need
-uvx arkitekt-server service rekuest --enable
-uvx arkitekt-server service mikro --enable
-uvx arkitekt-server service kabinet --enable
+# Add a user
+uvx arkitekt-server user add
+
+# Add an organization
+uvx arkitekt-server organization add
 ```
 
-### 3. Set Up Users
+### 3. Build and Start
 ```bash
-# Add users interactively
-uvx arkitekt-server auth user add
+# Generate deployment files (auto-detects backend)
+uvx arkitekt-server build
+
+# Start the services (using docker compose directly for now)
+docker compose up -d
 ```
 
-### 4. Build and Start
+### 4. Access Your Server
+Wait for services to initialize, then access via the Arkitekt Orkestrator interface at the configured URL (usually http://localhost:8000).
+
+## Temporary Server (Ephemeral Mode)
+
+For quick testing, demos, or development without leaving any trace, you can use the ephemeral mode. This creates a temporary server instance in a temporary directory, starts it, and cleans everything up when you stop it.
+
 ```bash
-# Generate Docker Compose files
-uvx arkitekt-server build docker
+# Start a temporary server on port 23489 (default)
+uvx arkitekt-server ephemeral
 
-# Start all services
-uvx arkitekt-server start
-```
-
-### 5. Access Your Server
-Wait for services to initialize, then access via the Arkitekt Orkestrator interface at the configured URL.
-
-### Additional Commands
-```bash
-# Update services to latest versions
-uvx arkitekt-server update
-
-# View configured users (development only)
-uvx arkitekt-server inspect users
-
-# Create temporary instance for testing
+# Start on a specific port
 uvx arkitekt-server ephemeral --port 8080
 ```
+
+This is perfect for trying out Arkitekt or running integration tests.
+
+## Command Reference
+
+### Core Commands
+
+- **`init`**: Initializes a new Arkitekt server configuration.
+  - `--wizard`: Runs an interactive wizard to guide you through setup.
+  - `--template [default|dev|minimal]`: Uses a predefined template.
+  - `[path]`: Specifies the directory to initialize (default: current directory).
+
+- **`build`**: Generates the deployment files (e.g., `docker-compose.yaml`) based on your configuration.
+  - `--dry-run`: Shows what would be generated without writing files.
+
+- **`start`**: Starts the server services using the generated deployment files.
+  - Equivalent to running `docker compose up -d`.
+
+- **`update`**: Updates the server images and restarts services.
+  - Pulls the latest Docker images and runs `up -d`.
+
+- **`ephemeral`**: Starts a temporary, disposable server instance.
+  - `--port`: Sets the HTTP port.
+  - `--defaults`: Skips prompts and uses default settings.
+
+### Management Commands
+
+- **`service`**: Manage individual Arkitekt services (Rekuest, Mikro, etc.).
+  - `[service_name] --enable/--disable`: Enable or disable a service.
+  - `list`: List all available services and their status.
+
+- **`user`**: Manage users for the Arkitekt deployment.
+  - `add`: Create a new user (interactive).
+  - `list`: List all configured users.
+  - `delete`: Remove a user.
+
+- **`organization`**: Manage organizations.
+  - `add`: Create a new organization.
+  - `list`: List all configured organizations.
+
+- **`inspect`**: Inspect the current state and configuration.
+  - `config`: Displays the current configuration and enabled services.
 
 ## Detailed Documentation
 
@@ -77,7 +116,7 @@ For comprehensive documentation, see the `docs/` folder:
 If you forget your preconfiugred user passwords, you can reset them by running:
 
 ```bash
-uvx arkitekt-server inspect users
+uvx arkitekt-server user list
 ```
 
 This command will list all users and their roles, that you have configured previously.
@@ -90,7 +129,7 @@ If you prefer not to use UVX, you can run the tool directly with:
 
 ```bash
 pip install arkitekt-server
-arkitekt-server init default
+arkitekt-server init --template default
 ```
 
 ## Key Features
@@ -110,63 +149,8 @@ The Arkitekt ecosystem includes several specialized services:
 - **Kabinet**: Container and application registry
 - **Fluss**: Workflow execution engine
 - **Kraph**: Knowledge graph and metadata management
-- **Elektro**: Event streaming and notifications
+- **Elektro**: Electrophysiology data handling
 - **Alpaka**: AI/ML model management with Ollama integration
-
-## Quick Start
-
-### Initialize a new deployment
-
-```bash
-# Create a default configuration
-arkitekt-server init default
-
-# Create a development configuration with GitHub mounting
-arkitekt-server init dev
-
-# Create a minimal configuration
-arkitekt-server init minimal
-```
-
-### Configure services
-
-```bash
-# Enable/disable specific services
-arkitekt-server service rekuest --enable
-arkitekt-server service mikro --enable
-arkitekt-server service kabinet --enable
-```
-
-### Manage users
-
-```bash
-# Add a new user
-arkitekt-server auth user add
-```
-
-Allows you to add a new user with options for username, email, and password.
-
-
-### Deploy
-
-When ready to deploy, run:
-
-```bash
-# Generate Docker Compose files and deploy
-arkitekt-server build docker
-```
-
-This command generates the necessary Docker Compose files based on your configuration and starts the services.
-
-### Start the services
-
-```bash
-docker compose up
-```
-
-This command starts all the services defined in the generated Docker Compose files, wait for the services to be up and running, and then you can access the 
-deployment though the orkestrator interface.
-
 
 ## Configuration
 
@@ -183,7 +167,7 @@ This file can be customized to suit your deployment needs, allowing you to speci
 
 ## Architecture
 
-Arkitekt Server uses a self-container-service architecture with:
+Arkitekt Server uses a self-contained service architecture with:
 
 - **PostgreSQL**: Primary database for all services
 - **Redis**: Message queuing and caching
@@ -204,8 +188,6 @@ For development workflows, the tool supports:
 - GitHub repository mounting for live code reloading
 - Debug mode with detailed logging
 - Separate development configurations
-- Hot-swappable service configurations
-
 
 
 ## License

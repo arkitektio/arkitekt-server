@@ -4,7 +4,7 @@ import sys
 import typer
 import rich_click as click
 from .logo import ASCI_LOGO
-from .commands import init, auth, build, inspect, service
+from .commands import init, build, inspect, service, organization, user
 from .commands import core
 
 app = typer.Typer(
@@ -13,16 +13,15 @@ app = typer.Typer(
 )
 
 # Add command groups
-app.add_typer(
-    init.app, name="init", help="Initialize an Arkitekt deployment configuration"
+app.command(name="init", help="Initialize an Arkitekt deployment configuration")(
+    init.init
 )
-app.add_typer(
-    auth.app, name="auth", help="Authentication related settings and commands"
-)
+app.add_typer(organization.app, name="organization", help="Manage organizations")
+app.add_typer(user.app, name="user", help="Manage users")
 app.add_typer(
     inspect.app, name="inspect", help="Inspect the Arkitekt server configuration"
 )
-app.add_typer(build.app, name="build", help="Build deployments for Arkitekt server")
+app.command(name="build", help="Build deployments for Arkitekt server")(build.build)
 app.add_typer(service.app, name="service", help="Service management commands")
 
 # Add core commands directly to main app

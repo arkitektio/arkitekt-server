@@ -13,7 +13,7 @@ def test_generate():
     # Create a temporary directory
     with runner.isolated_filesystem() as temp_dir:
         # Run the arkitekt init stable command
-        result = runner.invoke(app, ["init", "stable", "--defaults"])
+        result = runner.invoke(app, ["init", "--template", "stable"])
 
         # Check that the command succeeded
         assert result.exit_code == 0, (

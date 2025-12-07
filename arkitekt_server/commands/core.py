@@ -11,7 +11,7 @@ from rich.console import Console
 
 from arkitekt_server.config import DatenConfig, GatewayConfig, MinioConfig
 
-from . import load_yaml_file
+from arkitekt_server.utils import load_yaml_file
 
 console = Console()
 

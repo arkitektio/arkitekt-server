@@ -1,21 +1,29 @@
 """Inspect and analyze Arkitekt server configuration."""
 
 import typer
-from arkitekt_server.commands import console, load_yaml_file, show_important_information
+from pathlib import Path
+from arkitekt_server.commands import console
+from arkitekt_server.utils import load_setup_file, show_important_information
 
 app = typer.Typer(help="Inspect the Arkitekt server configuration")
 
 
 @app.command()
 def config(
-    file_path: str = typer.Option(
-        "arkitekt_server_config.yaml", help="Path to the configuration file"
-    ),
+    path: Path = typer.Argument(Path("."), help="Path to the configuration file"),
 ):
     """Inspect the current configuration."""
+    config_path = path / "arkitekt_server_config.yaml"
+    if not config_path.exists():
+        console.print(
+            f"[bold red]Configuration file not found at {config_path}.[/bold red]"
+        )
+        raise typer.Exit(1)
+
     try:
-        config = load_yaml_file(file_path)
-        console.print(f"📋 Configuration loaded from: {file_path}", style="blue")
+        setup = load_setup_file(str(config_path))
+        config = setup.config
+        console.print(f"📋 Configuration loaded from: {config_path}", style="blue")
         show_important_information(config)
 
         # Show enabled services
@@ -50,10 +58,20 @@ def config(
 
 
 @app.command()
-def services():
+def services(
+    path: Path = typer.Argument(Path("."), help="Path to the configuration file"),
+):
     """List all available services and their status."""
+    config_path = path / "arkitekt_server_config.yaml"
+    if not config_path.exists():
+        console.print(
+            f"[bold red]Configuration file not found at {config_path}.[/bold red]"
+        )
+        raise typer.Exit(1)
+
     try:
-        config = load_yaml_file("arkitekt_server_config.yaml")
+        setup = load_setup_file(str(config_path))
+        config = setup.config
         console.print("🔧 Service Status Overview:", style="bold blue")
 
         services = {

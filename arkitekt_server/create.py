@@ -55,11 +55,11 @@ def temp_server(
     if not config:
         config = ArkitektServerConfig()
 
-        # Make sure we are creating volumes not bind mounts
-        config.minio.mount = None
-        config.db.mount = None
-        config.gateway.exposed_http_port = random.randint(8000, 9000)
-        config.gateway.exposed_https_port = random.randint(9000, 10000)
+    # Make sure we are creating volumes not bind mounts
+    config.minio.mount = None
+    config.db.mount = None
+    config.gateway.exposed_http_port = random.randint(8000, 9000)
+    config.gateway.exposed_https_port = random.randint(9000, 10000)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)

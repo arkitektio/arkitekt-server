@@ -11,8 +11,8 @@ def run_init_command(
         app,
         [
             "init",
+            "--template",
             "stable",
-            "--defaults",
             "--port",
             str(port),
             "--ssl-port",
@@ -28,7 +28,7 @@ def run_init_command(
 
 def run_building_command(app: Typer, runner: CliRunner):
     # Run the arkitekt build command
-    result = runner.invoke(app, ["build", "docker"])
+    result = runner.invoke(app, ["build"])
 
     # Check that the command succeeded
     assert result.exit_code == 0, (
