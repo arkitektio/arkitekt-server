@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v2.0.0 (2025-12-07)
+
+### Features
+
+- New simplified api
+  ([`63c8431`](https://github.com/arkitektio/arkitekt-server/commit/63c8431707982223a4daf81fd5bd7e797aee2b7b))
+
+
 ## v1.8.0 (2025-10-04)
 
 
