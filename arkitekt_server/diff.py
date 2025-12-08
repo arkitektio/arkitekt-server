@@ -682,6 +682,47 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
                 )
             )
 
+    # Configure deployer service for container orchestration
+    if config.apps:
+        for org in config.organizations:
+            for key, app in config.apps.items():
+                for instance in app.instances:
+                    token = secrets.token_hex(16)
+
+                    services[key + "_" + instance + "_" + org.identifier] = {
+                        "image": app.image,
+                        "command": (
+                            f"arkitekt-next run prod --redeem-token={token} "
+                            f"--url http://{config.gateway.host}:{config.gateway.internal_port}"
+                        ),
+                        "stop_grace_period": f"{app.grace_period_seconds or config.default_service_grace_period_seconds}s",
+                        "deploy": {
+                            "restart_policy": {
+                                "condition": "on-failure",
+                                "delay": "10s",
+                                "max_attempts": 10,
+                                "window": "300s",
+                            }
+                        },
+                        "environment": {
+                            "ARKITEKT_GATEWAY": f"http://{config.gateway.host}:{config.gateway.internal_port}",
+                            "ARKITEKT_NETWORK": config.internal_network,
+                            "ARKITEKT_DEVICE_ID": config.device_id,
+                            "INSTANCE_ID": instance,
+                        },
+                    }
+
+                    user = app.user or org.bot_name
+                    organization = app.organization or org.identifier
+
+                    redeem_tokens.append(
+                        RedeemTokenConfig(
+                            token=token,
+                            user=user,
+                            organization=organization,
+                        )
+                    )
+
     # Configure individual Arkitekt services
     if config.fluss.enabled:
         services[config.fluss.host] = build_default_service(

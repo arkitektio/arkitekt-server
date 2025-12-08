@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from pydantic import BaseModel, ConfigDict, Field
 import secrets
 
+from arkitekt_server.device_id import get_or_set_device_id
+
 
 def generate_django_secret_key():
     """Generate a 50-character Django SECRET_KEY."""
@@ -249,12 +251,29 @@ class BaseAppConfig(BaseModel):
     This is used to define the common attributes and methods for all Arkitekt server applications.
     """
 
+    grace_period_seconds: int | None = Field(
+        default=None,
+        description="Grace period in seconds before shutting down the app. Will use the global setting if not provided",
+    )
+
+    instances: list[str] = Field(
+        default_factory=lambda: ["main"],
+        description="List of instances for the app. Each instance will run a separate container for the app",
+    )
+
+    host: str = Field(
+        description="Host of the app. This will be used to route requests to the app in the gateway",
+    )
     image: str = Field(
         description="Docker image of the app. This will be used to run the app in a container",
     )
-    run_as_user: str | None = Field(
+    user: str | None = Field(
         default=None,
         description="User to run the app as. If None, the app will run as the standard bot account for the organization",
+    )
+    organization: str | None = Field(
+        default=None,
+        description="Organization to run the app in. If None, the app will run for the global organization",
     )
 
 
@@ -357,6 +376,18 @@ class BaseService(Protocol):
         This is used to generate the command that will be executed to start the service.
         """
         ...
+
+
+@runtime_checkable
+class BaseApp(Protocol):
+    host: str
+    image: str
+    run_as_user: str | None
+    run_in_organization: str | None
+
+
+class AdditionalAppConfig(BaseAppConfig):
+    pass
 
 
 class RekuestConfig(BaseServiceConfig):
@@ -966,8 +997,16 @@ class EmailConfig(BaseModel):
 
 
 class ArkitektServerConfig(BaseModel):
+    device_id: str | None = Field(
+        default_factory=get_or_set_device_id,
+        description="Device ID for the Arkitekt server. This is used to uniquely identify the Arkitekt server instance",
+    )
     model_config = ConfigDict(
         extra="forbid",
+    )
+    default_service_grace_period_seconds: int = Field(
+        default=2,
+        description="Default grace period in seconds before shutting down a service. This is used to provide a grace period for services to shut down gracefully",
     )
     domain: str | None = Field(
         default=None,
@@ -1070,6 +1109,11 @@ class ArkitektServerConfig(BaseModel):
     kraph: KraphConfig = Field(
         default_factory=KraphConfig,
         description="Configuration for the Kraph service",
+    )
+
+    apps: dict[str, AdditionalAppConfig] = Field(
+        default_factory=dict,
+        description="Additional applications to be run by the Arkitekt server",
     )
 
 

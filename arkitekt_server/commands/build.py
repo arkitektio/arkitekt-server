@@ -2,7 +2,7 @@
 
 from pathlib import Path
 import typer
-from arkitekt_server.create import create_server
+from arkitekt_server.dev import create_server
 from arkitekt_server.diff import run_dry_run_diff
 from arkitekt_server.commands import console
 from arkitekt_server.utils import load_setup_file

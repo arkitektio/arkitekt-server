@@ -75,7 +75,7 @@ def ephemeral(
     port: int | None = None, https_port: int | None = None, defaults: bool = False
 ):
     """Create and start a temporary Arkitekt server instance."""
-    from ..create import create_server
+    from ..dev import create_server
     from ..config import ArkitektServerConfig
 
     # Create temporary directory
