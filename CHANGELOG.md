@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v2.1.0 (2025-12-08)
+
+### Features
+
+- With deployment
+  ([`9255432`](https://github.com/arkitektio/arkitekt-server/commit/92554326d9bc77e923ab7481c6969692c3ee7efe))
+
+
 ## v2.0.0 (2025-12-07)
 
 ### Features
