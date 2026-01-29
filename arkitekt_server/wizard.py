@@ -295,26 +295,32 @@ Use space to select/deselect services, and Enter to confirm your selection.
     default_selections = [name for name, _, default in services if default]
 
     # Prompt user for service selection
-    while True:
-        selection = inquirer.prompt(
-            [
-                inquirer.Checkbox(
-                    "services",
-                    message="Select the services you want to enable",
-                    choices=[desc for _, desc, _ in services],
-                    default=[desc for name, desc, default in services if name in default_selections],
-                )
-            ]
-        )
-
-        if selection is None:
-            console.print(
-                "[bold yellow]⚠️ No selection made. Using default services.[/bold yellow]"
+    selection = inquirer.prompt(
+        [
+            inquirer.Checkbox(
+                "services",
+                message="Select the services you want to enable",
+                choices=[desc for _, desc, _ in services],
+                default=[desc for name, desc, default in services if name in default_selections],
             )
-            break
+        ]
+    )
 
+    if selection is None:
+        # User cancelled - explicitly set to defaults
+        console.print(
+            "[bold yellow]⚠️ Selection cancelled. Using default services.[/bold yellow]"
+        )
+        config.rekuest.enabled = True
+        config.mikro.enabled = True
+        config.kabinet.enabled = True
+        config.fluss.enabled = True
+        config.kraph.enabled = True
+        config.alpaka.enabled = False
+        config.elektro.enabled = False
+    else:
         selected_services = selection.get("services", [])
-        
+
         # Extract service names from selected descriptions
         selected_names = []
         for name, desc, _ in services:
@@ -330,14 +336,12 @@ Use space to select/deselect services, and Enter to confirm your selection.
         config.alpaka.enabled = "alpaka" in selected_names
         config.elektro.enabled = "elektro" in selected_names
 
-        # Show summary
-        console.print("\n[bold green]✓ Services configured:[/bold green]")
-        for name, desc, _ in services:
-            enabled = getattr(config, name).enabled
-            status = "✅" if enabled else "❌"
-            console.print(f"  {status} {name.capitalize()}")
-        
-        break
+    # Show summary
+    console.print("\n[bold green]✓ Services configured:[/bold green]")
+    for name, desc, _ in services:
+        enabled = getattr(config, name).enabled
+        status = "✅" if enabled else "❌"
+        console.print(f"  {status} {name.capitalize()}")
 
 
 def prompt_config(console: Console) -> ArkitektServerConfig:
