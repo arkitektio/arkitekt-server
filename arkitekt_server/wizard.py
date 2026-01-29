@@ -252,6 +252,94 @@ background processes. This user will have the `bot` role in all organizations.
     return users
 
 
+def configure_services(console: Console, config: ArkitektServerConfig) -> None:
+    """Handles the configuration of services to enable."""
+    print_section_header(
+        console,
+        "🛠️ Service Selection",
+        """
+### Service Selection
+
+Select which Arkitekt services you want to enable for this deployment.
+
+**Core services** (always enabled):
+- **Lok**: Authentication and authorization
+- **Gateway**: Reverse proxy and routing
+
+**Optional services** you can enable:
+- **Rekuest**: Task orchestration and workflow management
+- **Mikro**: Image and microscopy data management
+- **Kabinet**: Container and application registry
+- **Fluss**: Workflow execution engine
+- **Kraph**: Knowledge graph and metadata management
+- **Alpaka**: AI/ML model management with Ollama integration
+- **Elektro**: Electrophysiology data handling
+
+Use space to select/deselect services, and Enter to confirm your selection.
+        """,
+        border_style="yellow",
+    )
+
+    # Define services with their default states and descriptions
+    services = [
+        ("rekuest", "Rekuest - Task orchestration and workflow management", True),
+        ("mikro", "Mikro - Image and microscopy data management", True),
+        ("kabinet", "Kabinet - Container and application registry", True),
+        ("fluss", "Fluss - Workflow execution engine", True),
+        ("kraph", "Kraph - Knowledge graph and metadata management", True),
+        ("alpaka", "Alpaka - AI/ML model management with Ollama", False),
+        ("elektro", "Elektro - Electrophysiology data handling", False),
+    ]
+
+    # Get default selections
+    default_selections = [name for name, _, default in services if default]
+
+    # Prompt user for service selection
+    while True:
+        selection = inquirer.prompt(
+            [
+                inquirer.Checkbox(
+                    "services",
+                    message="Select the services you want to enable",
+                    choices=[desc for _, desc, _ in services],
+                    default=[desc for name, desc, default in services if name in default_selections],
+                )
+            ]
+        )
+
+        if selection is None:
+            console.print(
+                "[bold yellow]⚠️ No selection made. Using default services.[/bold yellow]"
+            )
+            break
+
+        selected_services = selection.get("services", [])
+        
+        # Extract service names from selected descriptions
+        selected_names = []
+        for name, desc, _ in services:
+            if desc in selected_services:
+                selected_names.append(name)
+
+        # Update config based on selections
+        config.rekuest.enabled = "rekuest" in selected_names
+        config.mikro.enabled = "mikro" in selected_names
+        config.kabinet.enabled = "kabinet" in selected_names
+        config.fluss.enabled = "fluss" in selected_names
+        config.kraph.enabled = "kraph" in selected_names
+        config.alpaka.enabled = "alpaka" in selected_names
+        config.elektro.enabled = "elektro" in selected_names
+
+        # Show summary
+        console.print("\n[bold green]✓ Services configured:[/bold green]")
+        for name, desc, _ in services:
+            enabled = getattr(config, name).enabled
+            status = "✅" if enabled else "❌"
+            console.print(f"  {status} {name.capitalize()}")
+        
+        break
+
+
 def prompt_config(console: Console) -> ArkitektServerConfig:
     """Main function to prompt for server configuration."""
     # Welcome
@@ -269,7 +357,8 @@ def prompt_config(console: Console) -> ArkitektServerConfig:
 
     config = ArkitektServerConfig()
 
-    # use inqurirer to prompt which services to enable for this deployment
+    # Prompt which services to enable for this deployment
+    configure_services(console, config)
 
     config.global_admin, config.global_admin_password = configure_global_admin(console)
 
