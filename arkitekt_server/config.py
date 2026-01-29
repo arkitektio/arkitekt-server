@@ -890,14 +890,6 @@ class User(BaseModel):
         default=None,
         description="Email for the user. If not provided, the user will not have an email",
     )
-    memberships: list[Membership] = Field(
-        default_factory=lambda: [],
-        description="List of memberships for the user. This is used to manage user memberships in different organizations",
-    )
-    active_organization: str = Field(
-        default="default",
-        description="Organization for the user. This is used to identify the organization that the user belongs to",
-    )
 
     model_config = ConfigDict(
         extra="forbid",
@@ -941,6 +933,10 @@ class Organization(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
     )
+    owner: str | None = Field(
+        default=None,
+        description="Owner of the organization. This is used to identify the user who owns the organization",
+    )
 
     @property
     def bot_name(self) -> str:
@@ -972,13 +968,6 @@ def create_default_users() -> list[User]:
         User(
             username="demo",
             password="demo",
-            memberships=[
-                Membership(
-                    organization="arkitektio",
-                    roles=["admin"],
-                ),
-            ],
-            active_organization="arkitektio",
         )
     ]
 
@@ -1035,6 +1024,10 @@ class ArkitektServerConfig(BaseModel):
     organizations: list[Organization] = Field(
         default_factory=lambda: [create_default_organization()],
         description="List of organizations for the Arkitekt server. This is used to manage organizations in the Arkitekt server",
+    )
+    memberships: list[Membership] = Field(
+        default_factory=lambda: [],
+        description="List of memberships for the Arkitekt server. This is used to manage user memberships in different organizations",
     )
     users: list[User] = Field(
         default_factory=lambda: create_default_users(),

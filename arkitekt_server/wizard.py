@@ -72,7 +72,7 @@ def get_valid_org_slug(console: Console, default_slug: str) -> str:
         return org_slug
 
 
-def configure_organizations(console: Console) -> list[Organization]:
+def configure_organizations(console: Console, user: User) -> list[Organization]:
     """Handles the configuration of organizations."""
     print_section_header(
         console,
@@ -100,7 +100,9 @@ You can define custom organizations here, or use a single global organization.
 
     organizations: list[Organization] = []
 
-    if click.confirm("Would you like to define custom organizations?", default=True):
+    if click.confirm(
+        "Would you like to define custom organizations for this user?", default=True
+    ):
         while True:
             org_name = click.prompt(
                 "Enter the organization name (max 8 characters)",
@@ -114,7 +116,10 @@ You can define custom organizations here, or use a single global organization.
 
             organizations.append(
                 Organization(
-                    name=org_name, description=org_description, identifier=org_slug
+                    name=org_name,
+                    description=org_description,
+                    identifier=org_slug,
+                    owner=user.username,
                 )
             )
 
@@ -127,6 +132,7 @@ You can define custom organizations here, or use a single global organization.
                 name="global",
                 description="This is the global organization for the Arkitekt server.",
                 identifier="global",
+                owner=user.username,
             )
         )
     return organizations
@@ -207,7 +213,7 @@ def select_user_roles(console: Console, org_name: str) -> list[str]:
         return roles
 
 
-def configure_users(console: Console, organizations: list[Organization]) -> list[User]:
+def configure_users(console: Console) -> list[User]:
     """Handles the configuration of users."""
     print_section_header(
         console,
@@ -216,11 +222,7 @@ def configure_users(console: Console, organizations: list[Organization]) -> list
 ### User Setup
 
 Now you can define users who can access the Arkitekt services.
-
-Each user:
-- Belongs to one organization
-- Has one or more roles (`admin`, `user`) in that organization
-
+Each user can belong to one or more organizations and have specific roles within those organizations.
 The **global admin** you defined earlier is not included here — these are standard users.
 
 Attention: We will autogenerate a Bot user for you for some arkitekt internal services, which will be used for automated tasks and 
@@ -235,37 +237,11 @@ background processes. This user will have the `bot` role in all organizations.
         password = click.prompt("Enter the password", hide_input=True)
         email = click.prompt("Enter the email (optional)", default="")
 
-        selected_orgs = select_user_organizations(console, organizations)
-        memberships = []
-
-        for org in selected_orgs:
-            roles = select_user_roles(console, org)
-            memberships.append(Membership(organization=org, roles=roles))
-
-        active_org_choice = inquirer.prompt(
-            [
-                inquirer.List(
-                    "organization",
-                    message="Select the active organization for this user",
-                    choices=selected_orgs,
-                    default=selected_orgs[0],
-                )
-            ]
-        )
-
-        active_org = (
-            active_org_choice.get("organization", selected_orgs[0])
-            if active_org_choice
-            else selected_orgs[0]
-        )
-
         users.append(
             User(
                 username=username,
                 password=password,
                 email=email or None,
-                active_organization=active_org,
-                memberships=memberships,
             )
         )
 
@@ -274,6 +250,98 @@ background processes. This user will have the `bot` role in all organizations.
         if not click.confirm("Add another user?", default=False):
             break
     return users
+
+
+def configure_services(console: Console, config: ArkitektServerConfig) -> None:
+    """Handles the configuration of services to enable."""
+    print_section_header(
+        console,
+        "🛠️ Service Selection",
+        """
+### Service Selection
+
+Select which Arkitekt services you want to enable for this deployment.
+
+**Core services** (always enabled):
+- **Lok**: Authentication and authorization
+- **Gateway**: Reverse proxy and routing
+
+**Optional services** you can enable:
+- **Rekuest**: Task orchestration and workflow management
+- **Mikro**: Image and microscopy data management
+- **Kabinet**: Container and application registry
+- **Fluss**: Workflow execution engine
+- **Kraph**: Knowledge graph and metadata management
+- **Alpaka**: AI/ML model management with Ollama integration
+- **Elektro**: Electrophysiology data handling
+
+Use space to select/deselect services, and Enter to confirm your selection.
+        """,
+        border_style="yellow",
+    )
+
+    # Define services with their default states and descriptions
+    services = [
+        ("rekuest", "Rekuest - Task orchestration and workflow management", True),
+        ("mikro", "Mikro - Image and microscopy data management", True),
+        ("kabinet", "Kabinet - Container and application registry", True),
+        ("fluss", "Fluss - Workflow execution engine", True),
+        ("kraph", "Kraph - Knowledge graph and metadata management", True),
+        ("alpaka", "Alpaka - AI/ML model management with Ollama", False),
+        ("elektro", "Elektro - Electrophysiology data handling", False),
+    ]
+
+    # Get default selections
+    default_selections = [name for name, _, default in services if default]
+
+    # Prompt user for service selection
+    selection = inquirer.prompt(
+        [
+            inquirer.Checkbox(
+                "services",
+                message="Select the services you want to enable",
+                choices=[desc for _, desc, _ in services],
+                default=[desc for name, desc, default in services if name in default_selections],
+            )
+        ]
+    )
+
+    if selection is None:
+        # User cancelled - explicitly set to defaults
+        console.print(
+            "[bold yellow]⚠️ Selection cancelled. Using default services.[/bold yellow]"
+        )
+        config.rekuest.enabled = True
+        config.mikro.enabled = True
+        config.kabinet.enabled = True
+        config.fluss.enabled = True
+        config.kraph.enabled = True
+        config.alpaka.enabled = False
+        config.elektro.enabled = False
+    else:
+        selected_services = selection.get("services", [])
+
+        # Extract service names from selected descriptions
+        selected_names = []
+        for name, desc, _ in services:
+            if desc in selected_services:
+                selected_names.append(name)
+
+        # Update config based on selections
+        config.rekuest.enabled = "rekuest" in selected_names
+        config.mikro.enabled = "mikro" in selected_names
+        config.kabinet.enabled = "kabinet" in selected_names
+        config.fluss.enabled = "fluss" in selected_names
+        config.kraph.enabled = "kraph" in selected_names
+        config.alpaka.enabled = "alpaka" in selected_names
+        config.elektro.enabled = "elektro" in selected_names
+
+    # Show summary
+    console.print("\n[bold green]✓ Services configured:[/bold green]")
+    for name, desc, _ in services:
+        enabled = getattr(config, name).enabled
+        status = "✅" if enabled else "❌"
+        console.print(f"  {status} {name.capitalize()}")
 
 
 def prompt_config(console: Console) -> ArkitektServerConfig:
@@ -293,10 +361,19 @@ def prompt_config(console: Console) -> ArkitektServerConfig:
 
     config = ArkitektServerConfig()
 
+    # Prompt which services to enable for this deployment
+    configure_services(console, config)
+
     config.global_admin, config.global_admin_password = configure_global_admin(console)
-    config.organizations = configure_organizations(console)
-    config.email = configure_email(console)
-    config.users = configure_users(console, config.organizations)
+
+    config.users = configure_users(console)
+
+    for user in config.users:
+        # We prompt for each user's organization memberships and roles
+        config.organizations += configure_organizations(console, user)
+
+    for user in config.users:
+        config.memberships = []
 
     # Final message
     console.print(
