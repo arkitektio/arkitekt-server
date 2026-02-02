@@ -1,3 +1,16 @@
+"""Arkitekt Server Setup Wizard.
+
+This module provides an interactive wizard for configuring the Arkitekt server.
+The wizard guides users through:
+1. Selecting services to install
+2. Configuring the global admin account
+3. Creating users
+4. Setting up organizations
+5. Assigning memberships (users to organizations)
+6. Configuring kommunity partners
+7. Optional email setup
+"""
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -7,16 +20,38 @@ import click
 import inquirer
 from .utils import safe_org_slug
 from .logo import ASCI_LOGO
-from .config import ArkitektServerConfig, Organization, EmailConfig, User, Membership
-from .config import generate_name
+from .config import (
+    ArkitektServerConfig,
+    Organization,
+    EmailConfig,
+    User,
+    Membership,
+    KommunityPartner,
+    PreconfiguredComposition,
+    create_local_service_aliases,
+    generate_name,
+)
+from .services import (
+    SERVICE_REGISTRY,
+    get_service_info,
+)
 
-console = Console()
 
-
-def print_section_header(
-    console: Console, title: str, content: str, border_style: str = "cyan"
+def print_section(
+    *,
+    console: Console,
+    title: str,
+    content: str,
+    border_style: str = "cyan",
 ) -> None:
-    """Helper to print consistent section headers with Markdown content."""
+    """Print a section header with markdown content.
+
+    Args:
+        console: Rich console instance.
+        title: Section title.
+        content: Markdown content to display.
+        border_style: Border color style.
+    """
     console.print(
         Panel(
             Markdown(content),
@@ -27,283 +62,568 @@ def print_section_header(
     )
 
 
-def configure_global_admin(console: Console) -> tuple[str, str]:
-    """Handles the configuration of the global admin account."""
-    print_section_header(
-        console,
-        "",
-        """
-This wizard will guide you through setting up your **Arkitekt Server**.
+def configure_services(*, console: Console, config: ArkitektServerConfig) -> None:
+    """Select which services to install.
 
-Arkitekt is a multi-tenant server designed to manage data and workflows for various labs, institutions, or projects.
-As such, it supports multiple organizations, users, and roles.
+    Args:
+        console: Rich console instance.
+        config: Server configuration to modify.
+    """
+    print_section(
+        console=console,
+        title="🔧 Service Selection",
+        content="""
+Select the **services** you want to install.
 
-You will configure:
-- A **global admin** account to manage server settings
-- One or more **organizations** (e.g. `openuc2`, `anatlab`)
-- **Users** who can access the server, each belonging to an organization
-- Optional **email support** for notifications (experimental)
+**Required:**
+- **Lok** - Authentication (always enabled)
 
-🔐 First, you'll configure the global admin — the account that manages the server settings.
+**Available Services:**
+- **Rekuest** - Task orchestration
+- **Mikro** - Microscopy data
+- **Fluss** - Workflow management
+- **Kabinet** - Container deployment
+- **Kraph** - Knowledge graph
+- **Elektro** - Electrophysiology
+- **Alpaka** - AI/ML models
+- **Lovekit** - Real-time communication
         """,
-    )
-    username = click.prompt("Enter the global admin username", default="admin")
-    password = click.prompt("Enter the global admin password", hide_input=True)
-    return username, password
-
-
-def get_valid_org_slug(console: Console, default_slug: str) -> str:
-    """Prompts for and validates an organization slug."""
-    while True:
-        org_slug = click.prompt(
-            "Enter the organization slug (max 8 characters)",
-            default=default_slug,
-        )
-        if len(org_slug) > 12:
-            console.print(
-                "[bold red]⚠️ Organization slug must be max 12 characters.[/bold red]"
-            )
-            continue
-        if org_slug != safe_org_slug(org_slug):
-            console.print(
-                "[bold red]⚠️ Organization slug must be alphanumeric and _[/bold red]"
-            )
-            continue
-        return org_slug
-
-
-def configure_organizations(console: Console) -> list[Organization]:
-    """Handles the configuration of organizations."""
-    print_section_header(
-        console,
-        "🔧 Organization Setup",
-        """
-### Organizations
-
-Lets configure the organizations that will use twith this Arkitekt server.
-
-You can define:
-- A **single global organization**, or
-- **Multiple named organizations** (e.g. `openuc2`, `anatlab`)
-
-Users ca belong to multiple organizations, and each organization can specify its own roles 
-which will be used to manage permissions and access control. Some common roles include:
-
-- `admin`: Full access to manage the organization
-- `user`: Regular user with limited permissions
-- `bot`: Automated processes or services that interact with the organization
-
-You can define custom organizations here, or use a single global organization.
-        """,
-        border_style="magenta",
+        border_style="cyan",
     )
 
-    organizations: list[Organization] = []
+    # Build choices list from service registry
+    service_choices = []
+    default_enabled = ["rekuest", "mikro", "fluss", "kabinet", "kraph"]
 
-    if click.confirm("Would you like to define custom organizations?", default=True):
-        while True:
-            org_name = click.prompt(
-                "Enter the organization name (max 8 characters)",
-                default=generate_name(),
+    for identifier, service_class in SERVICE_REGISTRY.items():
+        if identifier == "lok":
+            continue  # Lok is always required
+        info = get_service_info(identifier)
+        if info:
+            label = f"{info['name']} - {info['description']}"
+            service_choices.append((label, identifier))
+
+    # Prompt for service selection
+    result = inquirer.prompt(
+        [
+            inquirer.Checkbox(
+                "services",
+                message="Select services to enable (Lok is always enabled)",
+                choices=service_choices,
+                default=[s for s in default_enabled if s != "lok"],
             )
-            org_slug = get_valid_org_slug(console, safe_org_slug(org_name.lower()))
-            org_description = click.prompt(
-                "Enter a short description",
-                default="This is a sample organization for the Arkitekt server.",
-            )
-
-            organizations.append(
-                Organization(
-                    name=org_name, description=org_description, identifier=org_slug
-                )
-            )
-
-            if not click.confirm("Add another organization?"):
-                break
-    else:
-        console.print("[yellow]Using a single global organization.[/yellow]")
-        organizations.append(
-            Organization(
-                name="global",
-                description="This is the global organization for the Arkitekt server.",
-                identifier="global",
-            )
-        )
-    return organizations
-
-
-def configure_email(console: Console) -> EmailConfig | None:
-    """Handles the configuration of email support."""
-    print_section_header(
-        console,
-        "📧 Email Setup",
-        """
-### Email Support (Experimental)
-
-You can enable email notifications (e.g. for password resets or invites) via an SMTP server.
-
-This is optional and can be skipped if you're running locally or without email features.
-        """,
-        border_style="blue",
+        ]
     )
 
-    if click.confirm("Would you like to enable email support?", default=False):
-        return EmailConfig(
-            host=click.prompt("SMTP host", default="smtp.example.com"),
-            port=click.prompt("SMTP port", type=int, default=587),
-            username=click.prompt("SMTP username", default=""),
-            password=click.prompt("SMTP password", hide_input=True, default=""),
-            email=click.prompt("Sender email address", default="noreply@example.com"),
-        )
-    return None
+    selected = result.get("services", []) if result else default_enabled
+
+    # Update config based on selection
+    for identifier in SERVICE_REGISTRY:
+        if identifier == "lok":
+            continue  # Always enabled
+        service_config = getattr(config, identifier, None)
+        if service_config:
+            service_config.enabled = identifier in selected
+            info = get_service_info(identifier)
+            name = info["name"] if info else identifier
+            if identifier in selected:
+                console.print(f"  [green]✓[/green] {name}")
+            else:
+                console.print(f"  [dim]✗ {name}[/dim]")
 
 
-def select_user_organizations(
-    console: Console, available_orgs: list[Organization]
-) -> list[str]:
-    """Prompts the user to select organizations."""
-    while True:
-        org_choice = inquirer.prompt(
-            [
-                inquirer.Checkbox(
-                    "organizations",
-                    message="Select the organizations this user belongs to",
-                    choices=[o.identifier for o in available_orgs],
-                    default=[available_orgs[0].identifier],
-                )
-            ]
-        )
+def configure_global_admin(*, console: Console) -> tuple[str, str, str | None]:
+    """Configure the global admin account.
 
-        if not org_choice or not org_choice.get("organizations"):
-            console.print(
-                "[bold red]⚠️ No organization selected, please select at least one organization.[/bold red]"
-            )
-            continue
+    Args:
+        console: Rich console instance.
 
-        return org_choice["organizations"]
+    Returns:
+        Tuple of (username, password, email or None).
+    """
+    print_section(
+        console=console,
+        title="🔐 Admin Setup",
+        content="""
+Configure the **global admin** account.
 
+This superuser manages server settings and has full access.
+        """,
+    )
 
-def select_user_roles(console: Console, org_name: str) -> list[str]:
-    """Prompts the user to select roles for a specific organization."""
-    role_choices = ["admin", "user", "bot", "viewer", "editor"]
-    while True:
-        inquisition = inquirer.prompt(
-            [
-                inquirer.Checkbox(
-                    "roles",
-                    message=f"Select the roles for this user within the {org_name} organization",
-                    choices=role_choices,
-                    default=[role_choices[0]],
-                )
-            ]
-        )
+    username = click.prompt("Admin username", default="admin")
+    password = click.prompt("Admin password", hide_input=True)
+    email = click.prompt("Admin email (optional)", default="")
 
-        roles = inquisition.get("roles", []) if inquisition else []
-        if not roles:
-            console.print(
-                "[bold red]⚠️ No roles selected, please select at least one role.[/bold red]"
-            )
-            continue
-        return roles
+    return username, password, email if email else None
 
 
-def configure_users(console: Console, organizations: list[Organization]) -> list[User]:
-    """Handles the configuration of users."""
-    print_section_header(
-        console,
-        "👤 Users",
-        """
-### User Setup
+def configure_users(*, console: Console) -> list[User]:
+    """Create user accounts.
 
-Now you can define users who can access the Arkitekt services.
+    Args:
+        console: Rich console instance.
 
-Each user:
-- Belongs to one organization
-- Has one or more roles (`admin`, `user`) in that organization
+    Returns:
+        List of User objects.
+    """
+    print_section(
+        console=console,
+        title="👤 Users",
+        content="""
+Create **user accounts**.
 
-The **global admin** you defined earlier is not included here — these are standard users.
-
-Attention: We will autogenerate a Bot user for you for some arkitekt internal services, which will be used for automated tasks and 
-background processes. This user will have the `bot` role in all organizations.
+Users can later be assigned to organizations with specific roles.
         """,
         border_style="green",
     )
 
     users: list[User] = []
+
+    if not click.confirm("Create users?", default=True):
+        return users
+
     while True:
-        username = click.prompt("Enter the username")
-        password = click.prompt("Enter the password", hide_input=True)
-        email = click.prompt("Enter the email (optional)", default="")
-
-        selected_orgs = select_user_organizations(console, organizations)
-        memberships = []
-
-        for org in selected_orgs:
-            roles = select_user_roles(console, org)
-            memberships.append(Membership(organization=org, roles=roles))
-
-        active_org_choice = inquirer.prompt(
-            [
-                inquirer.List(
-                    "organization",
-                    message="Select the active organization for this user",
-                    choices=selected_orgs,
-                    default=selected_orgs[0],
-                )
-            ]
-        )
-
-        active_org = (
-            active_org_choice.get("organization", selected_orgs[0])
-            if active_org_choice
-            else selected_orgs[0]
-        )
+        username = click.prompt("Username", default=generate_name())
+        password = click.prompt("Password", hide_input=True)
+        email = click.prompt("Email (optional)", default="")
 
         users.append(
             User(
                 username=username,
                 password=password,
-                email=email or None,
-                active_organization=active_org,
-                memberships=memberships,
+                email=email if email else None,
             )
         )
 
-        console.print(f"Added user: {username}")
+        console.print(f"  [green]✓[/green] Created user: {username}")
 
         if not click.confirm("Add another user?", default=False):
             break
+
     return users
 
 
+def get_valid_slug(*, console: Console, prompt_text: str, default: str) -> str:
+    """Prompt for a valid slug (alphanumeric + underscore, max 12 chars).
+
+    Args:
+        console: Rich console instance.
+        prompt_text: Text to display in prompt.
+        default: Default value.
+
+    Returns:
+        Valid slug string.
+    """
+    while True:
+        slug = click.prompt(prompt_text, default=default)
+        if len(slug) > 12:
+            console.print("[red]Must be max 12 characters.[/red]")
+            continue
+        if slug != safe_org_slug(slug):
+            console.print("[red]Must be alphanumeric and underscore only.[/red]")
+            continue
+        return slug
+
+
+def configure_organizations(
+    *, console: Console, users: list[User]
+) -> list[Organization]:
+    """Create organizations with optional owners.
+
+    Args:
+        console: Rich console instance.
+        users: Available users to select as owners.
+
+    Returns:
+        List of Organization objects.
+    """
+    print_section(
+        console=console,
+        title="🏢 Organizations",
+        content="""
+Create **organizations**.
+
+Each organization can have an **owner** who gets admin access automatically.
+        """,
+        border_style="magenta",
+    )
+
+    organizations: list[Organization] = []
+    user_names = [u.username for u in users]
+
+    if not user_names:
+        console.print(
+            "[yellow]No users available. Creating default organization.[/yellow]"
+        )
+        organizations.append(
+            Organization(
+                name="default",
+                identifier="default",
+                description="Default organization",
+            )
+        )
+        return organizations
+
+    while True:
+        name = click.prompt("Organization name", default=generate_name())
+        identifier = get_valid_slug(
+            console=console,
+            prompt_text="Organization identifier (slug)",
+            default=safe_org_slug(name.lower()),
+        )
+        description = click.prompt("Description", default="")
+
+        # Select owner
+        owner_choices = ["(no owner)"] + user_names
+        result = inquirer.prompt(
+            [
+                inquirer.List(
+                    "owner",
+                    message="Select owner",
+                    choices=owner_choices,
+                    default=user_names[0] if user_names else "(no owner)",
+                )
+            ]
+        )
+
+        owner = result.get("owner") if result else None
+        if owner == "(no owner)":
+            owner = None
+
+        organizations.append(
+            Organization(
+                name=name,
+                identifier=identifier,
+                description=description if description else None,
+                owner=owner,
+                auto_configure=True,
+            )
+        )
+
+        console.print(
+            f"  [green]✓[/green] Created: {name}"
+            + (f" (owner: {owner})" if owner else "")
+        )
+
+        if not click.confirm("Add another organization?", default=False):
+            break
+
+    return organizations
+
+
+def configure_memberships(
+    *,
+    console: Console,
+    users: list[User],
+    organizations: list[Organization],
+) -> list[Membership]:
+    """Assign users to organizations with roles.
+
+    Args:
+        console: Rich console instance.
+        users: Available users.
+        organizations: Available organizations.
+
+    Returns:
+        List of Membership objects.
+    """
+    print_section(
+        console=console,
+        title="🔗 Memberships",
+        content="""
+Assign **users to organizations** with roles.
+
+Available roles: admin, user, bot, viewer, editor
+
+Organization owners are automatically added as admins.
+        """,
+        border_style="blue",
+    )
+
+    memberships: list[Membership] = []
+
+    if not users or not organizations:
+        console.print("[yellow]No users or organizations to configure.[/yellow]")
+        return memberships
+
+    org_ids = [o.identifier for o in organizations]
+    role_choices = ["admin", "user", "bot", "viewer", "editor"]
+
+    # Auto-add owners as admins
+    for org in organizations:
+        if org.owner:
+            memberships.append(
+                Membership(
+                    user=org.owner,
+                    organization=org.identifier,
+                    roles=["admin"],
+                )
+            )
+            console.print(
+                f"  [cyan]Auto-added:[/cyan] {org.owner} → {org.identifier} (admin)"
+            )
+
+    if not click.confirm("Configure additional memberships?", default=True):
+        return memberships
+
+    while True:
+        # Select user
+        user_result = inquirer.prompt(
+            [
+                inquirer.List(
+                    "user",
+                    message="Select user",
+                    choices=[u.username for u in users],
+                )
+            ]
+        )
+        if not user_result:
+            break
+        username = user_result.get("user")
+
+        # Select organization
+        org_result = inquirer.prompt(
+            [
+                inquirer.List(
+                    "organization",
+                    message="Select organization",
+                    choices=org_ids,
+                )
+            ]
+        )
+        if not org_result:
+            break
+        org_id = org_result.get("organization")
+
+        # Select roles
+        roles_result = inquirer.prompt(
+            [
+                inquirer.Checkbox(
+                    "roles",
+                    message="Select roles",
+                    choices=role_choices,
+                    default=["user"],
+                )
+            ]
+        )
+        roles = roles_result.get("roles", ["user"]) if roles_result else ["user"]
+
+        # Check for existing membership
+        existing = next(
+            (m for m in memberships if m.user == username and m.organization == org_id),
+            None,
+        )
+        if existing:
+            memberships.remove(existing)
+            console.print(f"  [yellow]Updated:[/yellow] {username} → {org_id}")
+
+        memberships.append(
+            Membership(
+                user=username,
+                organization=org_id,
+                roles=roles,
+            )
+        )
+        console.print(f"  [green]✓[/green] {username} → {org_id} ({', '.join(roles)})")
+
+        if not click.confirm("Add another membership?", default=False):
+            break
+
+    return memberships
+
+
+def configure_kommunity_partners(
+    *,
+    console: Console,
+    config: ArkitektServerConfig,
+) -> list[KommunityPartner]:
+    """Configure kommunity partners for external integrations.
+
+    Args:
+        console: Rich console instance.
+        config: Server configuration.
+
+    Returns:
+        List of KommunityPartner objects.
+    """
+    print_section(
+        console=console,
+        title="🌐 Kommunity Partners",
+        content="""
+Configure **kommunity partners** for external service access.
+
+- **autoconfigured**: Auto-discovered by clients
+- **preauthorized**: Pre-approved for immediate connection
+        """,
+        border_style="cyan",
+    )
+
+    partners: list[KommunityPartner] = []
+
+    # Build list of enabled services
+    local_services = []
+    if config.rekuest.enabled:
+        local_services.append(("rekuest", "Rekuest", 80, "live.arkitekt.rekuest"))
+    if config.mikro.enabled:
+        local_services.append(("mikro", "Mikro", 80, "live.arkitekt.mikro"))
+    if config.fluss.enabled:
+        local_services.append(("fluss", "Fluss", 80, "live.arkitekt.fluss"))
+    if config.kabinet.enabled:
+        local_services.append(("kabinet", "Kabinet", 80, "live.arkitekt.kabinet"))
+    if config.lok.enabled:
+        local_services.append(("lok", "Lok", 80, "live.arkitekt.lok"))
+    if config.kraph.enabled:
+        local_services.append(("kraph", "Kraph", 80, "live.arkitekt.kraph"))
+
+    if not click.confirm("Set up default local partners?", default=True):
+        return partners
+
+    # Create both partner types
+    for kind in ["autoconfigured", "preauthorized"]:
+        partners.append(
+            KommunityPartner(
+                identifier=f"local_{kind}",
+                name=f"Local Arkitekt ({kind.title()})",
+                website_url="localhost",
+                partner_kind=kind,
+                auto_configure=True,
+                preconfigured_composition=PreconfiguredComposition(
+                    identifier="localhost",
+                    instances=create_local_service_aliases(local_services),
+                ),
+            )
+        )
+        console.print(f"  [green]✓[/green] Added {kind} partner")
+
+    if click.confirm("Add custom partners?", default=False):
+        while True:
+            identifier = click.prompt("Partner identifier", default=generate_name())
+            name = click.prompt("Partner name", default=f"{identifier} Partner")
+
+            kind_result = inquirer.prompt(
+                [
+                    inquirer.List(
+                        "kind",
+                        message="Partner kind",
+                        choices=["preauthorized", "autoconfigured"],
+                    )
+                ]
+            )
+            kind = (
+                kind_result.get("kind", "preauthorized")
+                if kind_result
+                else "preauthorized"
+            )
+
+            partners.append(
+                KommunityPartner(
+                    identifier=identifier,
+                    name=name,
+                    website_url="localhost",
+                    partner_kind=kind,
+                    auto_configure=True,
+                    preconfigured_composition=PreconfiguredComposition(
+                        identifier="localhost",
+                        instances=create_local_service_aliases(local_services),
+                    ),
+                )
+            )
+            console.print(f"  [green]✓[/green] Added {name}")
+
+            if not click.confirm("Add another?", default=False):
+                break
+
+    return partners
+
+
+def configure_email(*, console: Console) -> EmailConfig | None:
+    """Configure email support (optional).
+
+    Args:
+        console: Rich console instance.
+
+    Returns:
+        EmailConfig or None if skipped.
+    """
+    print_section(
+        console=console,
+        title="📧 Email",
+        content="""
+Configure **SMTP email** for notifications (optional).
+        """,
+        border_style="blue",
+    )
+
+    if not click.confirm("Enable email?", default=False):
+        return None
+
+    return EmailConfig(
+        host=click.prompt("SMTP host", default="smtp.example.com"),
+        port=click.prompt("SMTP port", type=int, default=587),
+        username=click.prompt("SMTP username", default=""),
+        password=click.prompt("SMTP password", hide_input=True, default=""),
+        email=click.prompt("Sender email", default="noreply@example.com"),
+    )
+
+
 def prompt_config(console: Console) -> ArkitektServerConfig:
-    """Main function to prompt for server configuration."""
-    # Welcome
+    """Run the interactive configuration wizard.
+
+    Args:
+        console: Rich console instance.
+
+    Returns:
+        Configured ArkitektServerConfig.
+    """
+    # Welcome banner
     console.print(
         Panel(
             Align.center(Text(ASCI_LOGO, style="bold cyan")),
-            title="",
             border_style="cyan",
             expand=True,
-            subtitle=Text(
-                "Welcome to the Arkitekt Server Setup Wizard", style="bold cyan"
-            ),
+            subtitle=Text("Arkitekt Server Setup", style="bold cyan"),
         )
     )
 
     config = ArkitektServerConfig()
 
-    config.global_admin, config.global_admin_password = configure_global_admin(console)
-    config.organizations = configure_organizations(console)
-    config.email = configure_email(console)
-    config.users = configure_users(console, config.organizations)
+    # Step 1: Select services
+    configure_services(console=console, config=config)
 
-    # Final message
+    # Step 2: Global admin
+    admin, password, email = configure_global_admin(console=console)
+    config.global_admin = admin
+    config.global_admin_password = password
+    config.global_admin_email = email
+
+    # Step 3: Users
+    users = configure_users(console=console)
+    config.users = users
+
+    # Step 4: Organizations
+    organizations = configure_organizations(console=console, users=users)
+    config.organizations = organizations
+
+    # Step 5: Memberships
+    memberships = configure_memberships(
+        console=console,
+        users=users,
+        organizations=organizations,
+    )
+    config.memberships = memberships
+
+    # Step 6: Kommunity partners
+    partners = configure_kommunity_partners(console=console, config=config)
+    config.kommunity_partners = partners
+
+    # Step 7: Email (optional)
+    config.email = configure_email(console=console)
+
+    # Done
     console.print(
         Panel(
-            Align.center(
-                Text("✔️ Arkitekt configuration complete!", style="bold green")
-            ),
+            Align.center(Text("✓ Configuration complete!", style="bold green")),
             border_style="green",
             expand=True,
         )

@@ -67,10 +67,15 @@ def list_users(
     table = Table(title="Users")
     table.add_column("Username", style="cyan")
     table.add_column("Email", style="magenta")
-    table.add_column("Active Organization", style="green")
+    table.add_column("Memberships", style="green")
 
     for user in setup.config.users:
-        table.add_row(user.username, user.email or "", user.active_organization)
+        # Count memberships for this user
+        user_memberships = [
+            m for m in setup.config.memberships if m.user == user.username
+        ]
+        orgs = ", ".join(m.organization for m in user_memberships) or "(none)"
+        table.add_row(user.username, user.email or "", orgs)
 
     console.print(table)
 

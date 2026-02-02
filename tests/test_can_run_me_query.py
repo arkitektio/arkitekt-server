@@ -3,6 +3,7 @@ from typer.testing import CliRunner
 from arkitekt_server.main import app
 from tests.utils import run_building_command, run_init_command
 from dokker import local
+import requests
 import pytest
 
 
@@ -44,7 +45,21 @@ def test_vitality():
 
             setup.down()
             setup.pull()
-
             setup.up()
 
             setup.check_health()
+
+            service = "mikro"
+
+            graphl_api = f"http://localhost:{setup.spec.find_service('gateway').get_port_for_internal(80).published}/{service}/graphql"
+
+            requests.post(
+                graphl_api,
+                json={
+                    "query": """
+                    query CanRunMeQuery {
+                        canRunMeQuery
+                    }
+                    """
+                },
+            )

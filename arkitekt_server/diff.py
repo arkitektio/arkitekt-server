@@ -17,11 +17,11 @@ from .config import (
     SpecificAdminConfig,
     LocalRedisConfig,
     LocalBucketConfig,
-    LocalAuthConfig,
     RemoteRedisConfig,
     User,
     generate_alpha_numeric_string,
 )
+from .services import get_enabled_service_scopes
 import yaml
 
 
@@ -139,6 +139,14 @@ def create_basic_config_values(
             "hosts": service.allowed_hosts,
             "secret_key": service.secret_key,
         },
+        "authentikate": [
+            {
+                "kind": "jwks_uri",
+                "issuer": config.lok.issuer,
+                "jwks_uri": f"http://{config.lok.host}:{config.lok.internal_port}/lok/o/jwks/",
+            }
+        ],
+        # Backwards compatibility: keep lok key for older services
         "lok": {
             "issuer": config.lok.issuer,
             "key_type": config.lok.auth_key_pair.key_type,
@@ -561,18 +569,20 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
 
     for org in config.organizations:
         # Add a bot user for each organization
+        bot_username = org.bot_name
         config.users.append(
             User(
-                username=org.bot_name,
+                username=bot_username,
                 password=generate_alpha_numeric_string(12),
                 email=None,
-                active_organization=org.identifier,
-                memberships=[
-                    Membership(
-                        organization=org.identifier,
-                        roles=["bot"],
-                    )
-                ],
+            )
+        )
+        # Add bot membership
+        config.memberships.append(
+            Membership(
+                user=bot_username,
+                organization=org.identifier,
+                roles=["bot"],
             )
         )
 
@@ -872,23 +882,33 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
     lok_config["public_key"] = config.lok.auth_key_pair.public_key
     lok_config["redeem_tokens"] = [instance.model_dump() for instance in redeem_tokens]
 
-    lok_config["scopes"] = {
-        "kabinet_add_repo": "Add repositories to the database",
-        "kabinet_deploy": "Deploy containers",
-        "mikro_read": "Read image from the database",
-        "mikro_write": "Write image to the database",
-        "openid": "The open id connect scope",
-        "read": "A generic read access",
-        "read_image": "Read image from the database",
-        "rekuest_agent": "Act as an agent",
-        "rekuest_call": "Call other apps with rekuest",
-        "write": "A generic write access",
-    }
+    # Generate scopes from enabled services
+    lok_config["scopes"] = get_enabled_service_scopes(
+        rekuest_enabled=config.rekuest.enabled,
+        mikro_enabled=config.mikro.enabled,
+        fluss_enabled=config.fluss.enabled,
+        kabinet_enabled=config.kabinet.enabled,
+        lok_enabled=config.lok.enabled,
+        kraph_enabled=config.kraph.enabled,
+        elektro_enabled=config.elektro.enabled,
+        alpaka_enabled=config.alpaka.enabled,
+        lovekit_enabled=config.lovekit.enabled,
+    )
     lok_config["token_expire_seconds"] = 800000
     lok_config["organizations"] = [org.model_dump() for org in config.organizations]
     lok_config["users"] = [user.model_dump() for user in config.users]
     lok_config["roles"] = [role.model_dump() for role in config.roles]
     lok_config["instances"] = [instance.model_dump() for instance in instances]
+
+    # Add memberships for the lok config (from config.memberships)
+    lok_config["memberships"] = [
+        membership.model_dump() for membership in config.memberships
+    ]
+
+    # Add kommunity partners
+    lok_config["kommunity_partners"] = [
+        partner.model_dump() for partner in config.kommunity_partners
+    ]
 
     create_config(config.lok.host, lok_config, tmpdir)
 
