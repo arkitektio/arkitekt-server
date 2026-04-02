@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v3.0.0 (2026-02-02)
+
+### Features
+
+- Updated to new arkitekt stack
+  ([`68680ce`](https://github.com/arkitektio/arkitekt-server/commit/68680ce9af190a6c8513efda5526bfa369307625))
+
+
 ## v2.1.0 (2025-12-08)
 
 ### Features
