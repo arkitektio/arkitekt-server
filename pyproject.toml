@@ -43,6 +43,7 @@ include = ["arkitekt_server"]
 dev-dependencies = [
     "arkitekt-next[all]>=0.17.0",
     "dokker>=2.2",
+    "fakts-next>=3",
     "pytest-cov>=6.2.1",
     "pytest>=8.4.1",
     "python-semantic-release>=9.21.1",

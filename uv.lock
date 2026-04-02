@@ -212,6 +212,7 @@ dependencies = [
 dev = [
     { name = "arkitekt-next", extra = ["all"] },
     { name = "dokker" },
+    { name = "fakts-next" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "python-semantic-release" },
@@ -236,6 +237,7 @@ requires-dist = [
 dev = [
     { name = "arkitekt-next", extras = ["all"], specifier = ">=0.17.0" },
     { name = "dokker", specifier = ">=2.2" },
+    { name = "fakts-next", specifier = ">=3" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "python-semantic-release", specifier = ">=9.21.1" },
@@ -664,7 +666,7 @@ wheels = [
 
 [[package]]
 name = "fakts-next"
-version = "2.0.1"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -674,9 +676,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/be/28d4e1275b5c769690aa80b825a7eb6fa84bd1b60cfa42fd70ae9bf0e3e6/fakts_next-2.0.1.tar.gz", hash = "sha256:d0f87ab8fa645629ed925a34caa13549e2222b55ae403ca209d3045afd66415f", size = 29860, upload-time = "2025-07-18T14:27:05.691Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/03/c043ab27f0821d878cdafb3c02b4af9de08f66fa1165ba5280348c74ddd2/fakts_next-3.0.0.tar.gz", hash = "sha256:01f63ecea78531749e20d20bd25d3c1ebb10d53048e253c5d7da6766076282a0", size = 30808, upload-time = "2026-01-24T14:30:56.839Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/89/16010a633883222d44702116f4f955745df61689a6a1a2105ff8baed03ff/fakts_next-2.0.1-py3-none-any.whl", hash = "sha256:e0268670ca05361a33f31bb224ea8a615550f68991386c9fd221b634faef6905", size = 50666, upload-time = "2025-07-18T14:27:04.574Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/22/d84b2c53b88129b057e97519922da69af8f4cdcb7205c4fdd7cfb1f7c372/fakts_next-3.0.0-py3-none-any.whl", hash = "sha256:78edb08ca0ea1d88e3bd0e0d87a79ebb53443a4203ce459d07888fcfc0a9e229", size = 51516, upload-time = "2026-01-24T14:30:55.78Z" },
 ]
 
 [[package]]

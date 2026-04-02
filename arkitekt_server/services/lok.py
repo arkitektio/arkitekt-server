@@ -53,7 +53,7 @@ class LokConfig(BaseServiceConfig):
         description="Whether the Lok service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/lok:dev",
+        default="jhnnsrs/lok:latest",
         description="Docker image for the Lok service",
     )
     host: str = Field(
