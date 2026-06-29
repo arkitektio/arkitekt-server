@@ -97,8 +97,11 @@ def build_authentikate(
         auth_issuer = {
             "kind": "jwks_uri",
             "iss": config.lok.issuer,
+            # lok serves its JWKS from the OAuth2 endpoint (``/o/jwks/``), not from
+            # ``/.well-known/jwks.json`` (cf. its openid-configuration). Services on
+            # the internal network reach it under lok's ``/<host>`` path prefix.
             "jwks_uri": f"http://{config.lok.host}:{config.lok.internal_port}"
-            f"/{config.lok.host}/.well-known/jwks.json",
+            f"/{config.lok.host}/o/jwks/",
         }
     else:
         auth_issuer = {
@@ -219,8 +222,12 @@ def create_basic_config_values(
             "admin": django_admin,
             "csrf_trusted_origins": config.csrf_trusted_origins
             or ["http://localhost", "https://localhost"],
-            # Path prefix this service is served under behind the gateway.
-            "force_script_name": f"/{service.host}",
+            # Path prefix this service is served under behind the gateway. Emitted
+            # WITHOUT a leading slash: services use it only to build external URLs
+            # (``MY_SCRIPT_NAME``) as ``build_absolute_uri("/") + MY_SCRIPT_NAME``,
+            # so a leading slash would yield a double slash (e.g. ``//lok/o/token/``)
+            # and break the rendered OAuth/token endpoints.
+            "force_script_name": f"{service.host}",
         },
         "postgres": postgres,
         "redis": redis,
@@ -624,6 +631,42 @@ def build_local_kommunity_partner(config: ArkitektServerConfig) -> dict[str, Any
                         "host": service.host,
                         "path": service.host,
                         "challenge": "ht",
+                        "kind": "relative",
+                        "scope": "public",
+                        "ssl": False,
+                    }
+                ],
+            }
+        )
+
+    # MinIO is not a Django web service, so ``iterate_service`` does not yield it,
+    # yet storage clients (e.g. mikro) declare a ``live.arkitekt.s3`` requirement.
+    # Register the object store as a composition instance so those clients can be
+    # composed -- the gateway routes ``/minio/*`` to MinIO, and the client reads
+    # only the endpoint URL from this alias (upload credentials are minted by the
+    # owning service).
+    if config.minio.enabled:
+        instances.append(
+            {
+                "identifier": f"local_{config.minio.host}",
+                "manifest": {
+                    "identifier": "live.arkitekt.s3",
+                    "version": "1.0.0",
+                    "description": "Local S3 / MinIO object storage datalayer",
+                    "roles": [],
+                    "scopes": [],
+                },
+                "aliases": [
+                    {
+                        "id": f"local_{config.minio.host}",
+                        "name": "S3",
+                        # Relative alias with NO path: the endpoint resolves to the
+                        # gateway root, so S3 path-style requests (``/<bucket>/...``)
+                        # hit the per-bucket gateway routes. The challenge targets
+                        # MinIO's health endpoint, which the gateway serves (unstripped)
+                        # under ``/minio/health/live``.
+                        "host": config.minio.host,
+                        "challenge": "minio/health/live",
                         "kind": "relative",
                         "scope": "public",
                         "ssl": False,
