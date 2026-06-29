@@ -192,13 +192,13 @@ all = [
 
 [[package]]
 name = "arkitekt-server"
-version = "2.1.0"
+version = "3.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "cryptography" },
+    { name = "dokker" },
     { name = "inquirer" },
-    { name = "namegenerator" },
     { name = "platformdirs" },
     { name = "py-machineid" },
     { name = "pydantic" },
@@ -222,8 +222,8 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.2.1" },
     { name = "cryptography", specifier = ">=45.0.5" },
+    { name = "dokker", specifier = ">=2.6" },
     { name = "inquirer", specifier = ">=3.4.0" },
-    { name = "namegenerator", specifier = ">=1.0.6" },
     { name = "platformdirs", specifier = ">=4.5.1" },
     { name = "py-machineid", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -617,7 +617,7 @@ wheels = [
 
 [[package]]
 name = "dokker"
-version = "2.2.0"
+version = "2.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -625,9 +625,9 @@ dependencies = [
     { name = "koil" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/36/fc/f12579a6cb2b75f8ba7dd5c7b3f7c384c79607b1ec2ad1feeec209d52b14/dokker-2.2.0.tar.gz", hash = "sha256:1cd37dbe7f8bdfe80e9d6f740e787d271a3dd8d7fba3326582152d0cebbf897f", size = 16419, upload-time = "2025-07-20T10:25:20.783Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/3a/6a4f919e9408f2e0e4a6bd330d81e0640aa6fa3917db9239b175938e2a34/dokker-2.6.0.tar.gz", hash = "sha256:f42ea7424a91a9e0f60fd34905603cec9926121be36e52a3683cd5e200c9bd92", size = 26718, upload-time = "2026-06-29T14:23:59.267Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/85/2c03f6cd3ff59ed3cb214bc2442af246157eccfa0c7604dd79ac5c77a6db/dokker-2.2.0-py3-none-any.whl", hash = "sha256:538e2576361d3b2162c334e19fd3977a0814f95479c09f710309b5f3aa9bd651", size = 21698, upload-time = "2025-07-20T10:25:19.909Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/cb/77fd1c9761935281b815710d9af2c0d582304d03446d83ba2cffcd9b63ab/dokker-2.6.0-py3-none-any.whl", hash = "sha256:3a95502d50066334a8c191ac20390fcee31745956dea3e654f564143904b8e8a", size = 32549, upload-time = "2026-06-29T14:23:58.275Z" },
 ]
 
 [[package]]
@@ -888,15 +888,6 @@ wheels = [
 ]
 
 [[package]]
-name = "janus"
-version = "1.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/1f/5100f13bc13e24a041f60757b097b3c7c31cf8a08c1c1ef1f1caa2516f22/janus-1.2.0.tar.gz", hash = "sha256:c03475c3e10e042f2a08d31a7a894df2a2a95845ff794b7265e7e9c10a425e5d", size = 21534, upload-time = "2024-12-12T23:59:54.797Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/d6/6b3ac4df8d0e928521fe7d49cff8f3274b5012975ec0bdbb968ae50531aa/janus-1.2.0-py3-none-any.whl", hash = "sha256:3fa91456c00caed4905821a911e95c69d41306e463ea8da72c76c7a096abc698", size = 11674, upload-time = "2024-12-12T23:59:52.327Z" },
-]
-
-[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -965,15 +956,14 @@ wheels = [
 
 [[package]]
 name = "koil"
-version = "2.0.4"
+version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "janus" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/65/66a1e16e6565bcbf168d09c9275e2672c96cb0b8195dc8ba2d730c9fdd7e/koil-2.0.4.tar.gz", hash = "sha256:862a4d4e1ccccb29576f8a6a1e30c9f955b5549efb37b3747d48a0718736320a", size = 15677, upload-time = "2025-05-13T12:32:49.555Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/f2/c803075854fda0c08201a280358a694206b4dcbc1c1f19981eec73b0f107/koil-3.3.1.tar.gz", hash = "sha256:18415e55b9f87651127db9aed284fca5bdfdd8d9c5fa9e44b0acdfdccf7fccf6", size = 40936, upload-time = "2026-06-11T14:59:26.835Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/ab/81bae99a8523476642f6bed8283d71068eec3f83d730fcab4272deb94391/koil-2.0.4-py3-none-any.whl", hash = "sha256:a1cf12471446a8f95966269bec0ba1410f350fbd4709575643328b49dfa778b6", size = 19241, upload-time = "2025-05-13T12:32:47.902Z" },
+    { url = "https://files.pythonhosted.org/packages/64/0b/af9f50f28c16a5378f23096766a7983b0904026fad24eee09a1b1eb17265/koil-3.3.1-py3-none-any.whl", hash = "sha256:603bb640c85bb70e9c9f08bbb90b2bf3196c8e15a3f287d79525539d5e34c3ab", size = 47270, upload-time = "2026-06-11T14:59:27.885Z" },
 ]
 
 [[package]]
@@ -1155,12 +1145,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/40/b68001cba8188dd267590a111f9661b6256debc327137667e832bf5d66e8/multidict-6.6.3-cp313-cp313t-win_arm64.whl", hash = "sha256:ce8b7693da41a3c4fde5871c738a81490cea5496c671d74374c8ab889e1834fb", size = 45254, upload-time = "2025-06-30T15:53:12.421Z" },
     { url = "https://files.pythonhosted.org/packages/d8/30/9aec301e9772b098c1f5c0ca0279237c9766d94b97802e9888010c64b0ed/multidict-6.6.3-py3-none-any.whl", hash = "sha256:8db10f29c7541fc5da4defd8cd697e1ca429db743fa716325f236079b96f775a", size = 12313, upload-time = "2025-06-30T15:53:45.437Z" },
 ]
-
-[[package]]
-name = "namegenerator"
-version = "1.0.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1b/2b/dd6d5b718c8fcefd30b9844a6c2386983c78ea37fa6094aea67d2e694719/namegenerator-1.0.6.tar.gz", hash = "sha256:144759c62d771e5b589514a0aa332d0b967818c0a24b7824e48a905357c58bfa", size = 4369, upload-time = "2018-08-01T11:14:31.877Z" }
 
 [[package]]
 name = "numcodecs"

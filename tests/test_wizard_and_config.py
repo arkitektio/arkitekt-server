@@ -302,9 +302,12 @@ class TestConfigGeneration:
             lok_config = yaml.safe_load(f)
 
         assert "kommunity_partners" in lok_config
-        assert len(lok_config["kommunity_partners"]) == 1
-        assert lok_config["kommunity_partners"][0]["identifier"] == "local_partner"
-        assert lok_config["kommunity_partners"][0]["partner_kind"] == "preauthorized"
+        by_id = {p["identifier"]: p for p in lok_config["kommunity_partners"]}
+        # The generator always injects a "local_arkitekt" partner alongside any
+        # explicitly configured ones.
+        assert "local_arkitekt" in by_id
+        assert "local_partner" in by_id
+        assert by_id["local_partner"]["partner_kind"] == "preauthorized"
 
     def test_lok_config_includes_memberships(self, tmp_path: Path):
         """Test that generated lok.yaml includes memberships."""
@@ -399,7 +402,11 @@ class TestConfigGeneration:
         with open(lok_config_path) as f:
             lok_config = yaml.safe_load(f)
 
-        partner = lok_config["kommunity_partners"][0]
+        partner = next(
+            p
+            for p in lok_config["kommunity_partners"]
+            if p["identifier"] == "full_partner"
+        )
         assert "preconfigured_composition" in partner
         composition = partner["preconfigured_composition"]
         assert composition["identifier"] == "localhost"
@@ -466,14 +473,10 @@ class TestConfigWithMultiplePartnerKinds:
         with open(lok_config_path) as f:
             lok_config = yaml.safe_load(f)
 
-        partners = lok_config["kommunity_partners"]
-        assert len(partners) == 2
+        by_id = {p["identifier"]: p for p in lok_config["kommunity_partners"]}
 
-        auto = next(p for p in partners if p["partner_kind"] == "autoconfigured")
-        preauth = next(p for p in partners if p["partner_kind"] == "preauthorized")
-
-        assert auto["identifier"] == "auto_partner"
-        assert preauth["identifier"] == "preauth_partner"
+        assert by_id["auto_partner"]["partner_kind"] == "autoconfigured"
+        assert by_id["preauth_partner"]["partner_kind"] == "preauthorized"
 
 
 class TestEndToEndConfigGeneration:
@@ -571,10 +574,10 @@ class TestEndToEndConfigGeneration:
         assert "demo_admin" in user_names
         assert "researcher" in user_names
 
-        # Verify kommunity partners
-        assert len(lok_config["kommunity_partners"]) == 1
-        partner = lok_config["kommunity_partners"][0]
-        assert partner["identifier"] == "local_services"
+        # Verify kommunity partners (the generator also injects "local_arkitekt")
+        by_id = {p["identifier"]: p for p in lok_config["kommunity_partners"]}
+        assert "local_services" in by_id
+        partner = by_id["local_services"]
         assert len(partner["preconfigured_composition"]["instances"]) == 3
 
         # Verify memberships

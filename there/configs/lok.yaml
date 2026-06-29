@@ -1,0 +1,346 @@
+authentikate:
+  issuers:
+  - iss: lok
+    kid: lok-key-1
+    kind: rsa
+    public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpn1KTcd5S1FmlunWnk9E7Yx2thh+8FnZE6akLcamMiB4yT0jEPBs/n8kVBbexYVnwE1rin71hXH0EGqfI3WkJUvbKuWEpLa2h7w+IFEGK7eLAtw31tPvMzs6lEZsNtOGq3bGjOCOKjtkyG44VgrON1yEEQaTMTzbvseJuhsZJxCfPQ2fAAxeQuldpeZ1SijQVbF7OHUesyGA/mdKMZyD1zibPOH+ke0oNaT7AT5b6jfqqwtDmosuoiaSL7tLUR+XAtCoG/FOn6LFJt+Y08iA4wUAIPKXhUj5t4YHwrBzRXDTGDH4PkuckR3rosaXdNsTdn+zRV9FHKW7B4sGOrphX
+  static_tokens: {}
+datalayer:
+  access_key: bw84st81wfjnz66s87mg7gxhk888aeiqb9sfyvxl
+  host: minio
+  media:
+    bucket: lokmedia
+  port: 9000
+  protocol: http
+  region: us-east-1
+  secret_key: 2dotkcl8va9ubu0liiq7duq1ujz4h7ldhvczs93o
+deployment:
+  description: A Basic Arkitekt Deployment
+  name: whiny-platinum-chow
+django:
+  admin:
+    email: null
+    password: ctyadc0prys18fnci7vkyc86rgeahdtiu05dzhru
+    username: admin
+  csrf_trusted_origins:
+  - http://localhost
+  - https://localhost
+  debug: false
+  force_script_name: /lok
+  hosts:
+  - '*'
+  secret_key: '*pg_fgaftc5p9k#&wiwq^tx*l^2j17#0@fs@k&q4yb4zn_894='
+kommunity_partners:
+- auto_configure: true
+  identifier: local_arkitekt
+  name: Local Arkitekt Services
+  partner_kind: preauthorized
+  preconfigured_composition:
+    identifier: localhost
+    instances:
+    - aliases:
+      - challenge: ht
+        host: rekuest
+        id: local_rekuest
+        kind: relative
+        name: Rekuest
+        path: rekuest
+        scope: public
+        ssl: false
+      identifier: local_rekuest
+      manifest:
+        description: Task orchestration and workflow execution
+        identifier: live.arkitekt.rekuest
+        roles:
+        - description: Can act as a workflow agent
+          key: agent
+        - description: Can call remote procedures
+          key: caller
+        - description: Full administrative access
+          key: admin
+        scopes:
+        - description: Act as an agent
+          key: rekuest_agent
+        - description: Call other apps with rekuest
+          key: rekuest_call
+        - description: Read access to rekuest resources
+          key: read
+        - description: Write access to rekuest resources
+          key: write
+        version: 1.0.0
+    - aliases:
+      - challenge: ht
+        host: kabinet
+        id: local_kabinet
+        kind: relative
+        name: Kabinet
+        path: kabinet
+        scope: public
+        ssl: false
+      identifier: local_kabinet
+      manifest:
+        description: Container and deployment management
+        identifier: live.arkitekt.kabinet
+        roles:
+        - description: Full administrative access
+          key: admin
+        - description: Can deploy containers
+          key: deployer
+        - description: Standard user access
+          key: user
+        - description: Read-only access
+          key: viewer
+        scopes:
+        - description: Add repositories to the database
+          key: kabinet_add_repo
+        - description: Deploy containers
+          key: kabinet_deploy
+        - description: Read container definitions
+          key: kabinet_read
+        - description: Generic read access
+          key: read
+        - description: Generic write access
+          key: write
+        version: 1.0.0
+    - aliases:
+      - challenge: ht
+        host: mikro
+        id: local_mikro
+        kind: relative
+        name: Mikro
+        path: mikro
+        scope: public
+        ssl: false
+      identifier: local_mikro
+      manifest:
+        description: Microscopy data management and analysis
+        identifier: live.arkitekt.mikro
+        roles:
+        - description: Full administrative access
+          key: admin
+        - description: Standard user access
+          key: user
+        - description: Read-only access to images
+          key: viewer
+        - description: Can upload new images
+          key: uploader
+        scopes:
+        - description: Read images from the database
+          key: mikro_read
+        - description: Write images to the database
+          key: mikro_write
+        - description: Read image data
+          key: read_image
+        - description: Generic read access
+          key: read
+        - description: Generic write access
+          key: write
+        version: 1.0.0
+    - aliases:
+      - challenge: ht
+        host: fluss
+        id: local_fluss
+        kind: relative
+        name: Fluss
+        path: fluss
+        scope: public
+        ssl: false
+      identifier: local_fluss
+      manifest:
+        description: Workflow definition and management
+        identifier: live.arkitekt.fluss
+        roles:
+        - description: Full administrative access
+          key: admin
+        - description: Standard user access
+          key: user
+        - description: Can design workflows
+          key: designer
+        - description: Read-only access
+          key: viewer
+        scopes:
+        - description: Read workflow definitions
+          key: fluss_read
+        - description: Create and modify workflows
+          key: fluss_write
+        - description: Execute workflows
+          key: fluss_execute
+        - description: Generic read access
+          key: read
+        - description: Generic write access
+          key: write
+        version: 1.0.0
+    - aliases:
+      - challenge: ht
+        host: lok
+        id: local_lok
+        kind: relative
+        name: Lok
+        path: lok
+        scope: public
+        ssl: false
+      identifier: local_lok
+      manifest:
+        description: Authentication and authorization (required)
+        identifier: live.arkitekt.lok
+        roles:
+        - description: Full administrative access
+          key: admin
+        - description: Standard user access
+          key: user
+        - description: Automated bot access
+          key: bot
+        - description: Read-only access
+          key: viewer
+        - description: Read and write access
+          key: editor
+        scopes:
+        - description: OpenID Connect scope
+          key: openid
+        - description: Generic read access
+          key: read
+        - description: Generic write access
+          key: write
+        - description: Access user profile
+          key: profile
+        - description: Access user email
+          key: email
+        version: 1.0.0
+    - aliases:
+      - challenge: ht
+        host: kraph
+        id: local_kraph
+        kind: relative
+        name: Kraph
+        path: kraph
+        scope: public
+        ssl: false
+      identifier: local_kraph
+      manifest:
+        description: Knowledge graph and data relationships
+        identifier: live.arkitekt.kraph
+        roles:
+        - description: Full administrative access
+          key: admin
+        - description: Standard user access
+          key: user
+        - description: Can edit graph data
+          key: editor
+        - description: Read-only access
+          key: viewer
+        scopes:
+        - description: Read graph data
+          key: kraph_read
+        - description: Write graph data
+          key: kraph_write
+        - description: Execute graph queries
+          key: kraph_query
+        - description: Generic read access
+          key: read
+        - description: Generic write access
+          key: write
+        version: 1.0.0
+  website_url: localhost
+lok:
+  public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpn1KTcd5S1FmlunWnk9E7Yx2thh+8FnZE6akLcamMiB4yT0jEPBs/n8kVBbexYVnwE1rin71hXH0EGqfI3WkJUvbKuWEpLa2h7w+IFEGK7eLAtw31tPvMzs6lEZsNtOGq3bGjOCOKjtkyG44VgrON1yEEQaTMTzbvseJuhsZJxCfPQ2fAAxeQuldpeZ1SijQVbF7OHUesyGA/mdKMZyD1zibPOH+ke0oNaT7AT5b6jfqqwtDmosuoiaSL7tLUR+XAtCoG/FOn6LFJt+Y08iA4wUAIPKXhUj5t4YHwrBzRXDTGDH4PkuckR3rosaXdNsTdn+zRV9FHKW7B4sGOrphX
+  static_tokens: {}
+memberships:
+- organization: arkitektio
+  roles:
+  - admin
+  user: demo
+- organization: arkitektio
+  roles:
+  - bot
+  user: arkitektio_bot
+oidc_issuer: http://lok
+organizations:
+- auto_configure: true
+  description: Default organization for the Arkitekt server
+  identifier: arkitektio
+  name: arkitektio
+  owner: admin
+postgres:
+  db_name: lok
+  engine: django.db.backends.postgresql
+  host: db
+  password: 30ae0f6d873a75e6ca8d25f98033f849
+  port: 5432
+  username: sleepyviolettarsier
+private_key: '-----BEGIN PRIVATE KEY-----
+
+  MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCpn1KTcd5S1Fml
+
+  unWnk9E7Yx2thh+8FnZE6akLcamMiB4yT0jEPBs/n8kVBbexYVnwE1rin71hXH0E
+
+  GqfI3WkJUvbKuWEpLa2h7w+IFEGK7eLAtw31tPvMzs6lEZsNtOGq3bGjOCOKjtky
+
+  G44VgrON1yEEQaTMTzbvseJuhsZJxCfPQ2fAAxeQuldpeZ1SijQVbF7OHUesyGA/
+
+  mdKMZyD1zibPOH+ke0oNaT7AT5b6jfqqwtDmosuoiaSL7tLUR+XAtCoG/FOn6LFJ
+
+  t+Y08iA4wUAIPKXhUj5t4YHwrBzRXDTGDH4PkuckR3rosaXdNsTdn+zRV9FHKW7B
+
+  4sGOrphXAgMBAAECggEACOs9tk8Id6Z+yD4TraoSGGNPzi39QTCVK2512wow9hi6
+
+  Lb8JfngCnsfSFO7mB8esqPj7kGsB1Dq+wBZ+uAscWMcp/uLcfwPN23PshyU5hQqZ
+
+  H7UAYOkRTGWbbAaO9puKOifKDWEITWLRfNcCE5N5yX2EWOrytWN86gGafGFNz9cQ
+
+  fwEdqOhJ8et/fglDJTtZciAzHjkSQmvXBXE28QpJqRJ/JCExQXSmnorXp0RqT/1R
+
+  RbnJBFylEgcOKX5uoJZu6ZiHhZdgj+/OoL+t+hT/3B/Ly3CFqIFV4b1cZ9CqQupU
+
+  p4sd1xwRJjH4V9UwmX9gR6TUpdZC9DMCpf0b0wSIwQKBgQDtZ16FP/VUxfXhf2Rr
+
+  cNcpfkZT6LBI2uNYPQlj0JIvDd7VKR+4Yq7GBQbbVeT2UvXtESIpzFQeDdBMOrUl
+
+  knloy9ZfbISdR1nlCVQpAaSkDNRzZnd33xA0kXbLOSfYpiGhS3sJxsDSFyDV3H+R
+
+  g1jDqxgOE/sZXVW8aAFelmIpMQKBgQC26L12VWppCRAhaHd3OxtK9rXsG/CZhwEB
+
+  YJi5cxX4V6dkLK8JU3yTP2XwjoQQzRAotl+FN04gQbdmPinFGjS/OFy+HSZHvMwe
+
+  X7d7sfecemZXm/PAbjNM8DvmnsXunns9UBeEdnDkmG8cXtb4EfUNAgMFBfMFSc+f
+
+  QkZI9Zj4BwKBgQDjs/Dh562cqN8kcTbVIn8NClPUKWvkBSZnvOtjtGpx/WDMnUwS
+
+  Y3x0699ewu0AIiRFRNi6tIO968vtQaX7qpkOnew4zHIKFKSxXJg/WJcczj17jj1q
+
+  WSZG9Xq2g1SnpPi+pxIVF3BcUdipp3soC4445sMExb9i3bXdJvihS6ZNEQKBgQCy
+
+  rZdvgq9png3g5OFXWyklSO6ckQqvn79urgNjnjZHHLGL3U68KI9YdKVLop0GoJv5
+
+  eXbEdytdvXTAb1d0kU4XwqJuoaEkkR1BSrW+IzNE7BkP2mv6fmyk60VI2691k+HG
+
+  Gnhu0RklZnecWlVbjoc5Rs7WWGJ3twwYgrCQU0M0fwKBgDFR03jp7EWJqR1ZLvrl
+
+  EmRy0R36qOJvqgCrk+Me4MenUoGwRSTGJf4tglohqVbLeWSYlVB/cuoF1zyRzHlm
+
+  3a1+gam7EnznRDn2xdRkWFa8K6xnW83znuLJaHTy/ucefSgL/Fns+Ikd6s4JlYnM
+
+  lr44UPXl8ehUeL5GNSC8b0fh
+
+  -----END PRIVATE KEY-----
+
+  '
+redeem_tokens:
+- composition: localhost
+  organization: arkitektio
+  token: 1ad63e03cfe6ddfa18b4a21b0715f987
+  user: arkitektio_bot
+redis:
+  host: redis
+  port: 6379
+users:
+- email: null
+  password: demo
+  username: demo
+- email: null
+  password: xon3qf22jpzv
+  username: arkitektio_bot
+- email: null
+  is_staff: true
+  is_superuser: true
+  password: ctyadc0prys18fnci7vkyc86rgeahdtiu05dzhru
+  username: admin

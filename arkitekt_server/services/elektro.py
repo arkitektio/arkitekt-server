@@ -29,6 +29,7 @@ class ElektroConfig(BaseServiceConfig):
     _identifier: ClassVar[str] = "elektro"
     _name: ClassVar[str] = "Elektro"
     _description: ClassVar[str] = "Electrophysiology data management"
+    _uses_datalayer: ClassVar[bool] = True
 
     _roles: ClassVar[list[ServiceRole]] = [
         ServiceRole(key="admin", description="Full administrative access"),
@@ -50,7 +51,7 @@ class ElektroConfig(BaseServiceConfig):
         description="Whether the Elektro service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/elektro:dev",
+        default="jhnnsrs/elektro:next",
         description="Docker image for the Elektro service",
     )
     host: str = Field(
@@ -65,6 +66,10 @@ class ElektroConfig(BaseServiceConfig):
         default_factory=lambda: LocalBucketConfig(bucket_name="elektromedia"),
         description="Media storage bucket",
     )
+    zarr_bucket: BucketConfig = Field(
+        default_factory=lambda: LocalBucketConfig(bucket_name="elektrozarr"),
+        description="Zarr array storage bucket",
+    )
     db_config: DBConfig = Field(
         default_factory=lambda: LocalDBConfig(db="elektro"),
         description="Database configuration",
@@ -75,5 +80,5 @@ class ElektroConfig(BaseServiceConfig):
     )
 
     def get_buckets(self) -> Dict[str, BucketConfig]:
-        """Get storage buckets for Elektro."""
-        return {"media": self.media_bucket}
+        """Get storage buckets for Elektro (datalayer purpose -> bucket)."""
+        return {"media": self.media_bucket, "zarr": self.zarr_bucket}

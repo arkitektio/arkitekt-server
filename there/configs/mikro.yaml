@@ -1,0 +1,45 @@
+authentikate:
+  issuers:
+  - iss: lok
+    kid: lok-key-1
+    kind: rsa
+    public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpn1KTcd5S1FmlunWnk9E7Yx2thh+8FnZE6akLcamMiB4yT0jEPBs/n8kVBbexYVnwE1rin71hXH0EGqfI3WkJUvbKuWEpLa2h7w+IFEGK7eLAtw31tPvMzs6lEZsNtOGq3bGjOCOKjtkyG44VgrON1yEEQaTMTzbvseJuhsZJxCfPQ2fAAxeQuldpeZ1SijQVbF7OHUesyGA/mdKMZyD1zibPOH+ke0oNaT7AT5b6jfqqwtDmosuoiaSL7tLUR+XAtCoG/FOn6LFJt+Y08iA4wUAIPKXhUj5t4YHwrBzRXDTGDH4PkuckR3rosaXdNsTdn+zRV9FHKW7B4sGOrphX
+  static_tokens: {}
+datalayer:
+  access_key: bw84st81wfjnz66s87mg7gxhk888aeiqb9sfyvxl
+  bigfile:
+    bucket: mikrobigfile
+  host: minio
+  media:
+    bucket: mikromedia
+  parquet:
+    bucket: mikroparquet
+  port: 9000
+  protocol: http
+  region: us-east-1
+  secret_key: 2dotkcl8va9ubu0liiq7duq1ujz4h7ldhvczs93o
+  zarr:
+    bucket: mikrozarr
+django:
+  admin:
+    email: null
+    password: ctyadc0prys18fnci7vkyc86rgeahdtiu05dzhru
+    username: admin
+  csrf_trusted_origins:
+  - http://localhost
+  - https://localhost
+  debug: false
+  force_script_name: /mikro
+  hosts:
+  - '*'
+  secret_key: so+&@f4$#*42r38ixreq0d1y!b#%8(q=#qt%-ywjbtk8liyy)q
+postgres:
+  db_name: mikro
+  engine: django.db.backends.postgresql
+  host: db
+  password: 30ae0f6d873a75e6ca8d25f98033f849
+  port: 5432
+  username: sleepyviolettarsier
+redis:
+  host: redis
+  port: 6379

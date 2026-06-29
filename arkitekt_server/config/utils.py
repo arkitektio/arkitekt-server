@@ -4,9 +4,8 @@ import secrets
 import namegenerator
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import serialization as crypto_serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from pydantic import BaseModel, Field
-from typing import Literal
 
 
 def generate_django_secret_key() -> str:
@@ -27,18 +26,18 @@ def generate_name() -> str:
 
 
 class KeyPair(BaseModel):
-    """RSA key pair for signing tokens."""
+    """Asymmetric key pair for signing/verifying tokens."""
 
-    key_type: Literal["RSA256"] = Field(
+    key_type: str = Field(
         default="RSA256",
-        description="Type of the key pair",
+        description="Type of the key pair (e.g. RSA256, Ed25519)",
     )
     public_key: str = Field(..., description="Public key")
     private_key: str = Field(..., description="Private key")
 
 
 def build_key_pair() -> KeyPair:
-    """Generate a new RSA key pair."""
+    """Generate a new RSA key pair (PEM private key, OpenSSH public key)."""
     key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -61,3 +60,28 @@ def build_key_pair() -> KeyPair:
     )
 
     return KeyPair(public_key=public_key, private_key=private_key)
+
+
+def build_ed25519_key_pair() -> KeyPair:
+    """Generate a new Ed25519 key pair (PEM private + public keys).
+
+    Used for the Rekuest provenance (attestation) signing key.
+    """
+    key = ed25519.Ed25519PrivateKey.generate()
+
+    private_key = key.private_bytes(
+        crypto_serialization.Encoding.PEM,
+        crypto_serialization.PrivateFormat.PKCS8,
+        crypto_serialization.NoEncryption(),
+    ).decode()
+
+    public_key = (
+        key.public_key()
+        .public_bytes(
+            crypto_serialization.Encoding.PEM,
+            crypto_serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode()
+    )
+
+    return KeyPair(key_type="Ed25519", public_key=public_key, private_key=private_key)

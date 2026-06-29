@@ -29,6 +29,7 @@ class KraphConfig(BaseServiceConfig):
     _identifier: ClassVar[str] = "kraph"
     _name: ClassVar[str] = "Kraph"
     _description: ClassVar[str] = "Knowledge graph and data relationships"
+    _uses_datalayer: ClassVar[bool] = True
 
     _roles: ClassVar[list[ServiceRole]] = [
         ServiceRole(key="admin", description="Full administrative access"),
@@ -50,6 +51,8 @@ class KraphConfig(BaseServiceConfig):
         description="Whether the Kraph service is enabled",
     )
     image: str = Field(
+        # kraph has no :next image published yet; its :dev line already speaks the
+        # new config schema.
         default="jhnnsrs/kraph:dev",
         description="Docker image for the Kraph service",
     )

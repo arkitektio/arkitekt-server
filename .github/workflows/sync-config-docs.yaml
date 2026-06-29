@@ -1,0 +1,54 @@
+name: Sync config docs
+
+# Keeps docs/config/<service>.md in sync with each service's upstream CONFIG.md.
+# The per-service CONFIG.md files are the source of truth; this workflow fetches
+# them from each service repo and commits any changes here.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 04:17 UTC.
+    - cron: "17 4 * * *"
+  push:
+    branches: [main]
+    paths:
+      - scripts/sync_config_docs.py
+      - .github/workflows/sync-config-docs.yaml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-config-docs
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync config docs from upstream repos
+        env:
+          # Only needed for private service repos. The default GITHUB_TOKEN cannot
+          # read other repos, so set a repo/org secret CONFIG_SYNC_TOKEN (a PAT or
+          # GitHub App token) with read access to the private service repos. Public
+          # repos sync without any token.
+          CONFIG_SYNC_TOKEN: ${{ secrets.CONFIG_SYNC_TOKEN }}
+        run: python scripts/sync_config_docs.py --from-github
+
+      - name: Commit changes
+        run: |
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/
+            git commit -m "docs: sync service config references"
+            git push
+          else
+            echo "No changes to commit."
+          fi

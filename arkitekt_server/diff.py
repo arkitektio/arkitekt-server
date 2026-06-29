@@ -51,15 +51,100 @@ def iterate_service(config: ArkitektServerConfig) -> list[BaseService]:
     return services
 
 
+def build_datalayer(
+    config: ArkitektServerConfig, service: BaseService
+) -> Dict[str, Any]:
+    """Build the ``datalayer`` (S3 storage) config block for a service.
+
+    Emits the connection settings plus one ``{purpose: {bucket: <name>}}`` binding
+    per bucket the service declares via ``get_buckets()``.
+    """
+    datalayer: dict[str, Any] = {
+        "access_key": config.minio.access_key,
+        "secret_key": config.minio.secret_key,
+        "host": config.minio.host,
+        "port": config.minio.internal_port,
+        "protocol": "http",
+        "region": "us-east-1",
+    }
+    for purpose, bucket in service.get_buckets().items():
+        datalayer[purpose] = {"bucket": bucket.bucket_name}
+    return datalayer
+
+
+def build_authentikate(
+    config: ArkitektServerConfig, service: BaseService
+) -> Dict[str, Any]:
+    """Build the shared ``authentikate`` block (inbound token verification).
+
+    Token verification points at the coordination server's JWKS:
+
+    - When Lok runs locally (``coord_server == "local"``) the local Lok *is* the
+      coordination server, so services fetch its JWKS over the internal network.
+    - Otherwise services trust the remote coordination host's JWKS.
+
+    Provenance (attestation) verification is nested under ``authentikate.provenance``
+    and points at the rekuest server's JWKS:
+
+    - When rekuest runs locally it is the provenance authority (internal JWKS).
+    - Otherwise, if a remote rekuest host is configured, trust its JWKS.
+    - With no provenance authority at all, the block is omitted entirely.
+
+    The provenance block is only emitted for services that actually consume provenance
+    tokens (``_verifies_provenance``); pure auth services like Lok/Lovekit reject it.
+    """
+    if config.lok.enabled:
+        auth_issuer = {
+            "kind": "jwks_uri",
+            "iss": config.lok.issuer,
+            "jwks_uri": f"http://{config.lok.host}:{config.lok.internal_port}"
+            f"/{config.lok.host}/.well-known/jwks.json",
+        }
+    else:
+        auth_issuer = {
+            "kind": "jwks_uri",
+            "iss": config.coord_server,
+            "jwks_uri": f"https://{config.coord_server}/.well-known/jwks.json",
+        }
+
+    authentikate: dict[str, Any] = {
+        "issuers": [auth_issuer],
+        "static_tokens": {},
+    }
+
+    prov_issuer: dict[str, Any] | None = None
+    if not getattr(service, "_verifies_provenance", True):
+        return authentikate
+    if config.rekuest.enabled:
+        prov_issuer = {
+            "kind": "jwks_uri",
+            "iss": config.rekuest.provenance_issuer,
+            "jwks_uri": f"http://{config.rekuest.host}:{config.rekuest.internal_port}"
+            f"/{config.rekuest.host}/.well-known/jwks.json",
+        }
+    elif config.rekuest_server and config.rekuest_server not in ("local", "none", ""):
+        prov_issuer = {
+            "kind": "jwks_uri",
+            "iss": config.rekuest_server,
+            "jwks_uri": f"https://{config.rekuest_server}/.well-known/jwks.json",
+        }
+
+    if prov_issuer is not None:
+        authentikate["provenance"] = {"issuers": [prov_issuer]}
+
+    return authentikate
+
+
 def create_basic_config_values(
     config: ArkitektServerConfig, service: BaseService
 ) -> Dict[str, Any]:
     """
-    Create basic configuration values for a service.
+    Create the common configuration blocks shared by every Arkitekt service.
 
-    This function generates the common configuration structure that most
-    Arkitekt services need, including database connections, Redis settings,
-    authentication, and S3 storage configuration.
+    Produces the new-schema layout documented under ``docs/config`` -- the
+    ``django``, ``postgres``, ``redis`` and ``authentikate`` blocks, plus an
+    optional ``datalayer`` block for services that use S3 storage and a
+    ``provenance`` block for services that sign provenance attestations.
 
     Args:
         config: The main Arkitekt server configuration
@@ -71,49 +156,46 @@ def create_basic_config_values(
     Raises:
         TypeError: If the service has an unsupported database or Redis configuration type
     """
-    db: dict[str, str | int] = {}
     if isinstance(service.db_config, LocalDBConfig):
-        db = {
-            "db_name": service.db_config.db,
+        postgres = {
             "engine": "django.db.backends.postgresql",
-            "host": "db",
-            "password": config.db.postgres_password,
-            "port": 5432,
+            "db_name": service.db_config.db,
             "username": config.db.postgres_user,
+            "password": config.db.postgres_password,
+            "host": "db",
+            "port": 5432,
         }
     elif isinstance(service.db_config, RemoteDBConfig):
-        db = {
-            "db_name": service.db_config.db,
+        postgres = {
             "engine": "django.db.backends.postgresql",
-            "host": service.db_config.host,
-            "password": service.db_config.password,
-            "port": service.db_config.port,
+            "db_name": service.db_config.db,
             "username": service.db_config.user,
+            "password": service.db_config.password,
+            "host": service.db_config.host,
+            "port": service.db_config.port,
         }
     else:
         raise TypeError(
             f"Expected LocalDBConfig or RemoteDBConfig, got {type(service.db_config).__name__} instead."
         )
 
-    django_admin: dict[str, str] | None = None
     if isinstance(service.admin_config, GlobalAdminConfig):
         django_admin = {
-            "email": config.global_admin_email,
-            "password": config.global_admin_password,
             "username": config.global_admin,
+            "password": config.global_admin_password,
+            "email": config.global_admin_email,
         }
     elif isinstance(service.admin_config, SpecificAdminConfig):
         django_admin = {
-            "email": service.admin_config.email,
-            "password": service.admin_config.password,
             "username": service.admin_config.username,
+            "password": service.admin_config.password,
+            "email": service.admin_config.email,
         }
     else:
         raise TypeError(
             f"Expected GlobalAdminConfig or SpecificAdminConfig, got {type(service.admin_config).__name__} instead."
         )
 
-    redis: dict[str, str | int] | None = None
     if isinstance(service.redis_config, LocalRedisConfig):
         redis = {
             "host": config.local_redis.host,
@@ -129,42 +211,34 @@ def create_basic_config_values(
             f"Expected LocalRedisConfig or RemoteRedisConfig, got {type(service.redis_config).__name__} instead."
         )
 
-    script_name = service.host
     config_values: dict[str, Any] = {
-        "csrf_trusted_origins": [],
-        "db": db,
         "django": {
-            "admin": django_admin,
+            "secret_key": service.secret_key,
             "debug": service.debug,
             "hosts": service.allowed_hosts,
-            "secret_key": service.secret_key,
+            "admin": django_admin,
+            "csrf_trusted_origins": config.csrf_trusted_origins
+            or ["http://localhost", "https://localhost"],
+            # Path prefix this service is served under behind the gateway.
+            "force_script_name": f"/{service.host}",
         },
-        "authentikate": [
-            {
-                "kind": "jwks_uri",
-                "issuer": config.lok.issuer,
-                "jwks_uri": f"http://{config.lok.host}:{config.lok.internal_port}/lok/o/jwks/",
-            }
-        ],
-        # Backwards compatibility: keep lok key for older services
-        "lok": {
-            "issuer": config.lok.issuer,
-            "key_type": config.lok.auth_key_pair.key_type,
-            "public_key": config.lok.auth_key_pair.public_key,
-        },
-        "force_script_name": script_name,
+        "postgres": postgres,
         "redis": redis,
-        "s3": {
-            "access_key": config.minio.access_key,
-            "secret_key": config.minio.secret_key,
-            "buckets": {
-                key: config.bucket_name for key, config in service.get_buckets().items()
-            },
-            "host": config.minio.host,
-            "port": config.minio.internal_port,
-            "protocol": "http",
-        },
+        "authentikate": build_authentikate(config, service),
     }
+
+    if getattr(service, "_uses_datalayer", False):
+        config_values["datalayer"] = build_datalayer(config, service)
+
+    # Rekuest (and any service with a provenance keypair) signs attestations.
+    if hasattr(service, "provenance_key_pair"):
+        config_values["provenance"] = {
+            "issuer": service.provenance_issuer,
+            "kid": service.provenance_kid,
+            "private_key": service.provenance_key_pair.private_key,
+            "public_key": service.provenance_key_pair.public_key,
+        }
+
     return config_values
 
 
@@ -440,11 +514,15 @@ def create_caddy_file(config: ArkitektServerConfig) -> str:
         )
         caddyfile += "\t}\n\n"
 
-    caddyfile += "\t@.well-known path /.well-known/*\n"
-    caddyfile += "\thandle @.well-known {\n"
-    caddyfile += "\t\trewrite * /lok{uri}\n"
-    caddyfile += f"\t\treverse_proxy {config.lok.host}:{config.lok.internal_port}\n"
-    caddyfile += "\t}\n\n"
+    # Serve the coordination JWKS / OIDC discovery at the root well-known path only
+    # when Lok runs locally as the coordination server. With a remote coordination
+    # server, clients resolve /.well-known against that server directly.
+    if config.lok.enabled:
+        caddyfile += "\t@.well-known path /.well-known/*\n"
+        caddyfile += "\thandle @.well-known {\n"
+        caddyfile += "\t\trewrite * /lok{uri}\n"
+        caddyfile += f"\t\treverse_proxy {config.lok.host}:{config.lok.internal_port}\n"
+        caddyfile += "\t}\n\n"
 
     caddyfile += "\t@minio path /minio/*\n"
     caddyfile += "\thandle @minio {\n"
@@ -508,6 +586,63 @@ class RedeemTokenConfig(BaseModel):
     token: str
     user: str
     organization: str
+    composition: str = "localhost"
+
+
+# Identifier of the auto-configured composition that bundles every local service.
+LOCAL_COMPOSITION_IDENTIFIER = "localhost"
+
+
+def build_local_kommunity_partner(config: ArkitektServerConfig) -> dict[str, Any]:
+    """Build a lok ``kommunity_partner`` that auto-configures a local composition.
+
+    The composition (identifier ``localhost``) registers every enabled service as an
+    instance so that clients authenticating against this deployment receive working
+    aliases for them. The emitted shape matches lok's ``KommunityPartnerModel`` /
+    ``CompositionManifest`` schema (see ``docs/config/lok.md``).
+    """
+    instances: list[dict[str, Any]] = []
+    for service in iterate_service(config):
+        identifier = service.get_identifier()
+        instances.append(
+            {
+                "identifier": f"local_{service.host}",
+                "manifest": {
+                    "identifier": f"live.arkitekt.{identifier}",
+                    "version": "1.0.0",
+                    "description": service.get_description(),
+                    "roles": [r.model_dump() for r in service.get_roles()],
+                    "scopes": [s.model_dump() for s in service.get_scopes()],
+                },
+                "aliases": [
+                    {
+                        "id": f"local_{service.host}",
+                        "name": service.get_name(),
+                        # Relative alias: lok resolves host/port/ssl from the gateway
+                        # request and serves it under this path (``/<service>``). Do
+                        # NOT set ``port`` -- doing so overrides the gateway's port.
+                        "host": service.host,
+                        "path": service.host,
+                        "challenge": "ht",
+                        "kind": "relative",
+                        "scope": "public",
+                        "ssl": False,
+                    }
+                ],
+            }
+        )
+
+    return {
+        "identifier": "local_arkitekt",
+        "name": "Local Arkitekt Services",
+        "website_url": "localhost",
+        "partner_kind": "preauthorized",
+        "auto_configure": True,
+        "preconfigured_composition": {
+            "identifier": LOCAL_COMPOSITION_IDENTIFIER,
+            "instances": instances,
+        },
+    }
 
 
 def service_to_instance_config(
@@ -751,18 +886,6 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
 
         gconfig = create_basic_config_values(config, config.kabinet)
-
-        repo_map = []
-        for org in config.organizations:
-            repo_map.append(
-                {
-                    "organization": org.identifier,
-                    "repos": [repo for repo in config.kabinet.ensured_repositories],
-                }
-            )
-
-        gconfig["repo_map"] = repo_map
-
         create_config(config.kabinet.host, gconfig, tmpdir)
         instances.append(
             service_to_instance_config(config.kabinet, "live.arkitekt.kabinet")
@@ -846,14 +969,17 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
     mkkdirs.mkdir(parents=True, exist_ok=True)
     (tmpdir / "configs" / "Caddyfile").write_text(caddyfile)
 
-    default_lok_service = build_default_service(tmpdir, config, config.lok)
-    default_lok_service["environment"] = {
-        "AUTHLIB_INSECURE_TRANSPORT": "true",
-    }
-    # Create Lok service configuration
-    services[config.lok.host] = default_lok_service
+    # Lok runs locally only when it is the coordination server (coord_server="local").
+    # Otherwise a remote coordination server owns auth and no Lok is emitted.
+    if config.lok.enabled:
+        default_lok_service = build_default_service(tmpdir, config, config.lok)
+        default_lok_service["environment"] = {
+            "AUTHLIB_INSECURE_TRANSPORT": "true",
+        }
+        # Create Lok service configuration
+        services[config.lok.host] = default_lok_service
 
-    instances.append(service_to_instance_config(config.lok, "live.arkitekt.lok"))
+        instances.append(service_to_instance_config(config.lok, "live.arkitekt.lok"))
 
     instances.append(
         InstanceConfig(
@@ -867,50 +993,68 @@ def write_virtual_config_files(tmpdir: Path, config: ArkitektServerConfig):
         )
     )
 
-    lok_config = create_basic_config_values(config, config.lok)
+    if config.lok.enabled:
+        lok_config = create_basic_config_values(config, config.lok)
 
-    lok_config["deployment"] = {"name": "test"}
-    lok_config["email"] = {
-        "host": config.email.host if config.email else "NOT_SET",
-        "port": config.email.port if config.email else 587,
-        "user": config.email.username if config.email else "NOT_SET",
-        "password": config.email.password if config.email else "NOT_SET",
-        "email": config.email.email if config.email else "NOT_SET",
-    }
-    lok_config["layers"] = [{"kind": "public", "identifier": "public"}]
-    lok_config["private_key"] = config.lok.auth_key_pair.private_key
-    lok_config["public_key"] = config.lok.auth_key_pair.public_key
-    lok_config["redeem_tokens"] = [instance.model_dump() for instance in redeem_tokens]
+        # Lok's own published key material (verifies the tokens it issues).
+        lok_config["lok"] = {
+            "public_key": config.lok.auth_key_pair.public_key,
+            "static_tokens": {},
+        }
 
-    # Generate scopes from enabled services
-    lok_config["scopes"] = get_enabled_service_scopes(
-        rekuest_enabled=config.rekuest.enabled,
-        mikro_enabled=config.mikro.enabled,
-        fluss_enabled=config.fluss.enabled,
-        kabinet_enabled=config.kabinet.enabled,
-        lok_enabled=config.lok.enabled,
-        kraph_enabled=config.kraph.enabled,
-        elektro_enabled=config.elektro.enabled,
-        alpaka_enabled=config.alpaka.enabled,
-        lovekit_enabled=config.lovekit.enabled,
-    )
-    lok_config["token_expire_seconds"] = 800000
-    lok_config["organizations"] = [org.model_dump() for org in config.organizations]
-    lok_config["users"] = [user.model_dump() for user in config.users]
-    lok_config["roles"] = [role.model_dump() for role in config.roles]
-    lok_config["instances"] = [instance.model_dump() for instance in instances]
+        # Top-level OIDC / provisioning fields (live at the root of the lok config).
+        lok_config["private_key"] = config.lok.auth_key_pair.private_key
+        lok_config["oidc_issuer"] = f"http://{config.lok.host}"
 
-    # Add memberships for the lok config (from config.memberships)
-    lok_config["memberships"] = [
-        membership.model_dump() for membership in config.memberships
-    ]
+        lok_config["deployment"] = {
+            "name": config.internal_network,
+            "description": config.global_description or "A Basic Arkitekt Deployment",
+        }
 
-    # Add kommunity partners
-    lok_config["kommunity_partners"] = [
-        partner.model_dump() for partner in config.kommunity_partners
-    ]
+        if config.email:
+            lok_config["email"] = {
+                "host": config.email.host,
+                "port": config.email.port,
+                "user": config.email.username,
+                "password": config.email.password,
+                "email": config.email.email,
+            }
 
-    create_config(config.lok.host, lok_config, tmpdir)
+        # Provisioning data applied on boot. lok requires every organization to have a
+        # (string) owner, so default it to the global admin, and make sure that admin
+        # exists as a superuser so the owner/creator references resolve.
+        org_dumps: list[dict[str, Any]] = []
+        for org in config.organizations:
+            org_dump = org.model_dump()
+            if not org_dump.get("owner"):
+                org_dump["owner"] = config.global_admin
+            org_dumps.append(org_dump)
+        lok_config["organizations"] = org_dumps
+
+        user_dumps: list[dict[str, Any]] = [
+            user.model_dump() for user in config.users
+        ]
+        user_dumps.append(
+            {
+                "username": config.global_admin,
+                "password": config.global_admin_password,
+                "email": config.global_admin_email,
+                "is_superuser": True,
+                "is_staff": True,
+            }
+        )
+        lok_config["users"] = user_dumps
+        lok_config["memberships"] = [
+            membership.model_dump() for membership in config.memberships
+        ]
+        lok_config["redeem_tokens"] = [token.model_dump() for token in redeem_tokens]
+        # Auto-configure a local composition bundling every enabled service, plus any
+        # explicitly configured partners.
+        lok_config["kommunity_partners"] = [
+            build_local_kommunity_partner(config)
+        ] + [partner.model_dump() for partner in config.kommunity_partners]
+
+        create_config(config.lok.host, lok_config, tmpdir)
 
     volumes: list[str] = []
     if not config.db.mount:

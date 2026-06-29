@@ -1,0 +1,164 @@
+networks:
+  whiny-platinum-chow:
+    driver: bridge
+    name: whiny-platinum-chow
+services:
+  db:
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: rekuest,kabinet,mikro,fluss,lok,kraph
+      POSTGRES_PASSWORD: 30ae0f6d873a75e6ca8d25f98033f849
+      POSTGRES_USER: sleepyviolettarsier
+    image: jhnnsrs/daten:dev
+    volumes:
+    - ./db_data:/var/lib/postgresql/data
+  deployerarkitektio:
+    command: arkitekt-next run prod --redeem-token=1ad63e03cfe6ddfa18b4a21b0715f987
+      --url http://gateway:80
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    environment:
+      ARKITEKT_GATEWAY: http://gateway:80
+      ARKITEKT_NETWORK: whiny-platinum-chow
+      DEPLOYER_ORGANIZATION: arkitektio
+      INSTANCE_ID: default
+      ME_ID: arkitektio_default
+    image: jhnnsrs/deployer:dev
+    stop_grace_period: 2s
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  fluss:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    image: jhnnsrs/fluss:next
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/fluss.yaml:/workspace/config.yaml
+  gateway:
+    image: caddy:latest
+    networks:
+    - whiny-platinum-chow
+    - default
+    ports:
+    - 80:80
+    - 443:443
+    volumes:
+    - ./configs/Caddyfile:/etc/caddy/Caddyfile
+  kabinet:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    image: jhnnsrs/kabinet:next
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/kabinet.yaml:/workspace/config.yaml
+  kraph:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    image: jhnnsrs/kraph:dev
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/kraph.yaml:/workspace/config.yaml
+  lok:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    environment:
+      AUTHLIB_INSECURE_TRANSPORT: 'true'
+    image: jhnnsrs/lok:next
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/lok.yaml:/workspace/config.yaml
+  mikro:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    image: jhnnsrs/mikro:next
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/mikro.yaml:/workspace/config.yaml
+  minio:
+    command: server /data
+    environment:
+      MINIO_ROOT_PASSWORD: j5pe1ki9lypyk27miyf1mzf7lqsfg9pk5c08raou
+      MINIO_ROOT_USER: paltry-wisteria-tuatara
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
+    stop_grace_period: 2s
+    volumes:
+    - /data:/data
+  minio_init:
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_HOST: http://minio:9000
+      MINIO_ROOT_PASSWORD: j5pe1ki9lypyk27miyf1mzf7lqsfg9pk5c08raou
+      MINIO_ROOT_USER: paltry-wisteria-tuatara
+    image: jhnnsrs/init:dev
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/minio_init.yaml:/workspace/config.yaml
+  redis:
+    image: redis:latest
+  rekuest:
+    command: bash run.sh
+    depends_on:
+    - redis
+    - db
+    - minio
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 300s
+    image: jhnnsrs/rekuest:next
+    stop_grace_period: 2s
+    volumes:
+    - ./configs/rekuest.yaml:/workspace/config.yaml
+volumes: {}

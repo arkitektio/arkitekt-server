@@ -29,6 +29,8 @@ class LovekitConfig(BaseServiceConfig):
     _identifier: ClassVar[str] = "lovekit"
     _name: ClassVar[str] = "Lovekit"
     _description: ClassVar[str] = "LiveKit integration for real-time communication"
+    # Lovekit does not consume provenance attestation tokens.
+    _verifies_provenance: ClassVar[bool] = False
 
     _roles: ClassVar[list[ServiceRole]] = [
         ServiceRole(key="admin", description="Full administrative access"),

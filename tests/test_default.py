@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-from dokker import local
+from dokker import local, testing
 from fakts_next import Fakts
 from fakts_next.cache.file import FileCache
 from fakts_next.fakts import Fakts
@@ -24,7 +24,7 @@ from arkitekt_server.main import app
 from tests.utils import run_building_command, run_init_command
 
 
-@pytest.mark.integratoin
+@pytest.mark.integration
 def test_run_fakts():
     """Test that runs the building command in a temporary folder."""
 
@@ -51,15 +51,18 @@ def test_run_fakts():
             f"Docker Compose file not created at {docker_compose_file}"
         )
 
-        setup = local(docker_compose_file)
-        setup.down_on_exit = True
+        setup = testing(docker_compose_file)
 
         for service in ["rekuest", "mikro", "fluss", "lok", "kabinet"]:
             setup.add_health_check(
-                url=lambda spec: f"http://localhost:{setup.spec.find_service('gateway').get_port_for_internal(80).published}/{service}/ht",
+                # Bind ``service`` per iteration to avoid late-binding closure capture
+                # (otherwise every check would target the last service in the list).
+                url=lambda spec, service=service: (
+                    f"http://localhost:{setup.spec.find_service('gateway').get_port_for_internal(80).published}/{service}/ht"
+                ),
                 service=service,
-                timeout=5,
-                max_retries=10,
+                timeout=10,
+                max_retries=60,
             )
 
         with setup:
@@ -71,10 +74,10 @@ def test_run_fakts():
 
             setup.check_health()
 
-            async def device_code_hook(device_code: str):
+            async def device_code_hook(endpoint, device_code: str):
                 await setup.arun(
                     "lok",
-                    f"uv run python manage.py validatecode --code {device_code} --user demo --org arkitektio --composition ",
+                    f"uv run python manage.py validatecode --code {device_code} --user demo --org arkitektio --composition localhost",
                 )
 
             demander = DeviceCodeDemander(
@@ -84,11 +87,16 @@ def test_run_fakts():
                 device_code_hook=device_code_hook,
             )
 
+            gateway_port = (
+                setup.spec.find_service("gateway").get_port_for_internal(80).published
+            )
+            gateway_url = f"http://localhost:{gateway_port}/"
+
             fakts = Fakts(
                 grant=RemoteGrant(
                     demander=demander,
                     discovery=WellKnownDiscovery(
-                        url="url", auto_protocols=["https", "http"]
+                        url=gateway_url, auto_protocols=["https", "http"]
                     ),
                     claimer=ClaimEndpointClaimer(),
                 ),

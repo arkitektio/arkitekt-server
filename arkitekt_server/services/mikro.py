@@ -29,6 +29,7 @@ class MikroConfig(BaseServiceConfig):
     _identifier: ClassVar[str] = "mikro"
     _name: ClassVar[str] = "Mikro"
     _description: ClassVar[str] = "Microscopy data management and analysis"
+    _uses_datalayer: ClassVar[bool] = True
 
     _roles: ClassVar[list[ServiceRole]] = [
         ServiceRole(key="admin", description="Full administrative access"),
@@ -50,7 +51,7 @@ class MikroConfig(BaseServiceConfig):
         description="Whether the Mikro service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/mikro:dev",
+        default="jhnnsrs/mikro:next",
         description="Docker image for the Mikro service",
     )
     host: str = Field(
@@ -73,6 +74,10 @@ class MikroConfig(BaseServiceConfig):
         default_factory=lambda: LocalBucketConfig(bucket_name="mikroparquet"),
         description="Parquet table storage bucket",
     )
+    bigfile_bucket: BucketConfig = Field(
+        default_factory=lambda: LocalBucketConfig(bucket_name="mikrobigfile"),
+        description="Large binary file storage bucket",
+    )
     db_config: DBConfig = Field(
         default_factory=lambda: LocalDBConfig(db="mikro"),
         description="Database configuration",
@@ -83,9 +88,10 @@ class MikroConfig(BaseServiceConfig):
     )
 
     def get_buckets(self) -> Dict[str, BucketConfig]:
-        """Get storage buckets for Mikro."""
+        """Get storage buckets for Mikro (datalayer purpose -> bucket)."""
         return {
+            "media": self.media_bucket,
             "zarr": self.zarr_bucket,
             "parquet": self.parquet_bucket,
-            "media": self.media_bucket,
+            "bigfile": self.bigfile_bucket,
         }
