@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v4.0.0 (2026-06-29)
+
+### Features
+
+- Support latst arkitekt instance
+  ([`608238d`](https://github.com/arkitektio/arkitekt-server/commit/608238df3fc2f95ccdacbc61120a6ec53b4efd48))
+
+
 ## v3.0.1 (2026-06-29)
 
 ### Bug Fixes
