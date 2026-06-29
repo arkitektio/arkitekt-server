@@ -1,7 +1,26 @@
 # CHANGELOG
 
 
+## v3.0.1 (2026-06-29)
+
+### Bug Fixes
+
+- More tests
+  ([`553f9b4`](https://github.com/arkitektio/arkitekt-server/commit/553f9b4ec00f7d3ca1dbddcdef41b79793bbdd60))
+
+- Removal of namegenerator
+  ([`c5cbdbd`](https://github.com/arkitektio/arkitekt-server/commit/c5cbdbdeea7520165c39424af5aef4db7ebb3978))
+
+- Some stuff
+  ([`ce35c10`](https://github.com/arkitektio/arkitekt-server/commit/ce35c10529be2e8715aec0a4a97b3818b3b1be44))
+
+
 ## v3.0.0 (2026-02-02)
+
+### Chores
+
+- Currently broken need to fix
+  ([`a9648db`](https://github.com/arkitektio/arkitekt-server/commit/a9648db13209a680e18e66dc3ab4a72b82bb1f56))
 
 ### Features
 
