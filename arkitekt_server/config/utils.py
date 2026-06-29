@@ -1,7 +1,6 @@
 """Utility functions for configuration generation."""
 
 import secrets
-import namegenerator
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 from cryptography.hazmat.primitives import serialization as crypto_serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
@@ -20,9 +19,38 @@ def generate_alpha_numeric_string(length: int = 40) -> str:
     return "".join(secrets.choice(chars) for _ in range(length))
 
 
+# Word lists for the random name generator. Kept deliberately small, friendly and
+# unambiguous so generated identifiers (usernames, org names, ...) read nicely.
+_ADJECTIVES = (
+    "ancient", "autumn", "billowing", "bold", "brave", "bright", "calm", "clever",
+    "cool", "crimson", "curly", "damp", "dawn", "delicate", "divine", "dry", "empty",
+    "falling", "floral", "fragrant", "frosty", "gentle", "green", "happy", "hidden",
+    "holy", "icy", "jolly", "late", "lingering", "little", "lively", "long", "lucky",
+    "misty", "morning", "muddy", "nameless", "noisy", "old", "patient", "polished",
+    "proud", "purple", "quiet", "rapid", "restless", "rough", "shiny", "shy", "silent",
+    "small", "snowy", "solitary", "sparkling", "spring", "still", "summer", "twilight",
+    "wandering", "weathered", "wild", "winter", "wispy", "withered", "young",
+)
+
+_NOUNS = (
+    "badger", "bird", "breeze", "brook", "bush", "butterfly", "cherry", "cloud",
+    "darkness", "dawn", "dew", "dream", "dust", "feather", "field", "fire", "firefly",
+    "flower", "fog", "forest", "frog", "frost", "glade", "glitter", "grass", "haze",
+    "hill", "lake", "leaf", "lion", "log", "meadow", "moon", "morning", "mountain",
+    "night", "otter", "owl", "paper", "pine", "pond", "rain", "resonance", "river",
+    "sea", "shadow", "shape", "silence", "sky", "smoke", "snow", "snowflake", "sound",
+    "star", "sun", "sunset", "surf", "thunder", "tree", "violet", "voice", "water",
+    "waterfall", "wave", "wildflower", "wind", "wood",
+)
+
+
 def generate_name() -> str:
-    """Generate a random name using the namegenerator library."""
-    return namegenerator.gen()
+    """Generate a random, human-friendly ``adjective-noun`` name.
+
+    Used as a default for usernames, organization names and similar identifiers.
+    Produces lowercase, hyphen-separated names such as ``wandering-otter``.
+    """
+    return f"{secrets.choice(_ADJECTIVES)}-{secrets.choice(_NOUNS)}"
 
 
 class KeyPair(BaseModel):
