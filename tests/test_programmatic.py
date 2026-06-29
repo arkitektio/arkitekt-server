@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 from arkitekt_server.dev import create_server, temp_server, ArkitektServerConfig
-from dokker import local
+from dokker import local, testing
 
 
 def test_programmatic_generation():
@@ -30,7 +30,7 @@ def test_programmatic_temp_server():
 
 def test_programmatic_temp_server_with_dokker():
     with temp_server() as temp_path:
-        with local(temp_path / "docker-compose.yaml") as setup:
+        with testing(temp_path / "docker-compose.yaml") as setup:
             # Check that the setup can be initialized
             assert setup is not None, "Setup could not be initialized"
 

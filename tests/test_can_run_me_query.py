@@ -2,12 +2,12 @@ from pathlib import Path
 from typer.testing import CliRunner
 from arkitekt_server.main import app
 from tests.utils import run_building_command, run_init_command
-from dokker import local
+from dokker import testing
 import requests
 import pytest
 
 
-@pytest.mark.integratoin
+@pytest.mark.integration
 def test_vitality():
     """Test that runs the building command in a temporary folder."""
 
@@ -24,12 +24,14 @@ def test_vitality():
             f"Docker Compose file not created at {docker_compose_file}"
         )
 
-        setup = local(docker_compose_file)
+        setup = testing(docker_compose_file)
         setup.down_on_exit = True
 
         for service in ["rekuest", "mikro", "fluss", "lok", "kabinet"]:
             setup.add_health_check(
-                url=lambda spec: f"http://localhost:{setup.spec.find_service('gateway').get_port_for_internal(80).published}/{service}/ht",
+                url=lambda spec: (
+                    f"http://localhost:{setup.spec.find_service('gateway').get_port_for_internal(80).published}/{service}/ht"
+                ),
                 service=service,
                 timeout=5,
                 max_retries=10,

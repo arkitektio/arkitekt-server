@@ -31,6 +31,9 @@ class LokConfig(BaseServiceConfig):
     _identifier: ClassVar[str] = "lok"
     _name: ClassVar[str] = "Lok"
     _description: ClassVar[str] = "Authentication and authorization (required)"
+    _uses_datalayer: ClassVar[bool] = True
+    # Lok is the auth authority; it does not consume provenance attestation tokens.
+    _verifies_provenance: ClassVar[bool] = False
 
     _roles: ClassVar[list[ServiceRole]] = [
         ServiceRole(key="admin", description="Full administrative access"),
@@ -53,7 +56,7 @@ class LokConfig(BaseServiceConfig):
         description="Whether the Lok service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/lok:latest",
+        default="jhnnsrs/lok:next",
         description="Docker image for the Lok service",
     )
     host: str = Field(

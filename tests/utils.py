@@ -4,9 +4,14 @@ from typer.main import Typer
 
 
 def run_init_command(
-    app: Typer, runner: CliRunner, port: int = 80, ssl_port: int = 443
+    app: Typer,
+    runner: CliRunner,
+    port: int = 80,
+    ssl_port: int = 443,
+    coord_server: str = "local",
 ):
-    # Run the arkitekt init stable command
+    # Run the arkitekt init stable command. The integration tests spin up a full local
+    # stack, so default the coordination server to "local" (which provisions Lok).
     result = runner.invoke(
         app,
         [
@@ -17,6 +22,8 @@ def run_init_command(
             str(port),
             "--ssl-port",
             str(ssl_port),
+            "--coord_server",
+            coord_server,
         ],
     )
 

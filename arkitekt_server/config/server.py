@@ -86,6 +86,17 @@ class ArkitektServerConfig(BaseModel):
         default=None,
         description="Domain for the Arkitekt server. If None, runs on localhost",
     )
+    coord_server: str = Field(
+        default="go.arkitekt.live",
+        description="Coordination (auth) server host whose JWKS authentikate trusts. "
+        "Set to 'local' to run Lok as the coordination server.",
+    )
+    rekuest_server: str = Field(
+        default="local",
+        description="Rekuest server (provenance authority) host whose JWKS verifies "
+        "attestations. 'local' runs rekuest locally as a core dependency; a host trusts "
+        "a remote rekuest.",
+    )
     internal_network: str = Field(
         default_factory=generate_name,
         description="Internal network name for connecting services",

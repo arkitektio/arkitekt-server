@@ -11,13 +11,17 @@ from arkitekt_server.utils import update_or_create_yaml_file
 
 
 def create_stable_config(config: ArkitektServerConfig) -> ArkitektServerConfig:
-    """Create a stable production configuration for Arkitekt server."""
-    config.mikro.image = "jhnnsrs/mikro:latest"
-    config.fluss.image = "jhnnsrs/fluss:latest"
-    config.elektro.image = "jhnnsrs/elektro:latest"
-    config.alpaka.image = "jhnnsrs/alpaka:latest"
-    config.lok.image = "jhnnsrs/lok:latest"
-    config.rekuest.image = "jhnnsrs/rekuest:latest"
+    """Create a stable production configuration for Arkitekt server.
+
+    Pins every service to the ``next`` channel -- the image line that speaks the
+    config schema this tool generates (see ``docs/config``).
+    """
+    config.mikro.image = "jhnnsrs/mikro:next"
+    config.fluss.image = "jhnnsrs/fluss:next"
+    config.elektro.image = "jhnnsrs/elektro:next"
+    config.alpaka.image = "jhnnsrs/alpaka:next"
+    config.lok.image = "jhnnsrs/lok:next"
+    config.rekuest.image = "jhnnsrs/rekuest:next"
     return config
 
 
@@ -59,6 +63,16 @@ def init(
     backend: str = typer.Option(
         None, help="The backend to use (docker, podman, kubernetes)"
     ),
+    coord_server: str = typer.Option(
+        "go.arkitekt.live",
+        "--coord_server",
+        help="Coordination (auth) server host ('local' to run Lok locally)",
+    ),
+    rekuest_server: str = typer.Option(
+        "local",
+        "--rekuest_server",
+        help="Rekuest server host ('local' to run rekuest locally as a core dependency)",
+    ),
     path: Path = typer.Argument(
         Path("."), help="The path where to initialize the server"
     ),
@@ -78,6 +92,16 @@ def init(
         config.gateway.exposed_http_port = port
     if ssl_port is not None:
         config.gateway.exposed_https_port = ssl_port
+
+    # Coordination (auth) server: run Lok locally only when explicitly "local",
+    # otherwise trust the remote coordination server's JWKS.
+    config.coord_server = coord_server
+    config.lok.enabled = coord_server == "local"
+
+    # Rekuest server (provenance authority): run rekuest locally only when "local",
+    # otherwise trust the remote rekuest server's JWKS and do not run it locally.
+    config.rekuest_server = rekuest_server
+    config.rekuest.enabled = rekuest_server == "local"
 
     if template == "stable":
         config = create_stable_config(config)

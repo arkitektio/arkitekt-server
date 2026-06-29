@@ -7,8 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
     "click>=8.2.1",
     "cryptography>=45.0.5",
+    "dokker>=2.5",
     "inquirer>=3.4.0",
-    "namegenerator>=1.0.6",
     "platformdirs>=4.5.1",
     "py-machineid>=1.0.0",
     "pydantic>=2.11.7",
@@ -64,3 +64,14 @@ build_command = "uv build"
 
 [project.scripts]
 arkitekt-server = "arkitekt_server.main:main"
+
+[project.entry-points.pytest11]
+arkitekt_server = "arkitekt_server.pytest_plugin"
+
+[tool.pytest.ini_options]
+# Only collect functions prefixed ``test_`` so imported helpers like
+# ``dokker.testing`` are not mistaken for tests.
+python_functions = ["test_*"]
+markers = [
+    "integration: requires Docker / spins up a real Arkitekt deployment",
+]

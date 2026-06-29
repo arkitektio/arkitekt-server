@@ -50,7 +50,7 @@ class FlussConfig(BaseServiceConfig):
         description="Whether the Fluss service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/fluss:dev",
+        default="jhnnsrs/fluss:next",
         description="Docker image for the Fluss service",
     )
     host: str = Field(

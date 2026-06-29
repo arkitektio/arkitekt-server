@@ -104,6 +104,15 @@ class BaseServiceConfig(BaseModel):
     _description: ClassVar[str] = "Base service configuration"
     _roles: ClassVar[list[ServiceRole]] = []
     _scopes: ClassVar[list[ServiceScope]] = []
+    # Whether this service consumes the S3 `datalayer` config block. Services that
+    # do not store objects (e.g. fluss, kabinet) must leave this False so no
+    # `datalayer` block is emitted into their config.
+    _uses_datalayer: ClassVar[bool] = False
+    # Whether this service's authentikate config accepts a `provenance` block for
+    # verifying inbound provenance (attestation) tokens. Pure auth services like Lok
+    # and Lovekit do not consume provenance and reject the block, so they leave this
+    # False.
+    _verifies_provenance: ClassVar[bool] = True
 
     internal_port: int = Field(
         default=80,

@@ -11,10 +11,12 @@ from pydantic import Field
 from arkitekt_server.config import (
     BucketConfig,
     DBConfig,
+    KeyPair,
     LocalBucketConfig,
     LocalDBConfig,
     LocalRedisConfig,
     RedisConfig,
+    build_ed25519_key_pair,
 )
 from arkitekt_server.services.base import (
     BaseServiceConfig,
@@ -48,7 +50,7 @@ class RekuestConfig(BaseServiceConfig):
         description="Whether the Rekuest service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/rekuest:dev",
+        default="jhnnsrs/rekuest:next",
         description="Docker image for the Rekuest service",
     )
     host: str = Field(
@@ -70,6 +72,18 @@ class RekuestConfig(BaseServiceConfig):
     redis_config: RedisConfig = Field(
         default_factory=LocalRedisConfig,
         description="Redis configuration",
+    )
+    provenance_issuer: str = Field(
+        default="rekuest",
+        description="Provenance (attestation) token issuer",
+    )
+    provenance_kid: str = Field(
+        default="rekuest-prov-1",
+        description="Provenance key id published at the JWKS endpoint",
+    )
+    provenance_key_pair: KeyPair = Field(
+        default_factory=build_ed25519_key_pair,
+        description="Ed25519 key pair for signing provenance attestations",
     )
 
     def get_buckets(self) -> Dict[str, BucketConfig]:

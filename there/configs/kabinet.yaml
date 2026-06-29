@@ -1,0 +1,30 @@
+authentikate:
+  issuers:
+  - iss: lok
+    kid: lok-key-1
+    kind: rsa
+    public_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCpn1KTcd5S1FmlunWnk9E7Yx2thh+8FnZE6akLcamMiB4yT0jEPBs/n8kVBbexYVnwE1rin71hXH0EGqfI3WkJUvbKuWEpLa2h7w+IFEGK7eLAtw31tPvMzs6lEZsNtOGq3bGjOCOKjtkyG44VgrON1yEEQaTMTzbvseJuhsZJxCfPQ2fAAxeQuldpeZ1SijQVbF7OHUesyGA/mdKMZyD1zibPOH+ke0oNaT7AT5b6jfqqwtDmosuoiaSL7tLUR+XAtCoG/FOn6LFJt+Y08iA4wUAIPKXhUj5t4YHwrBzRXDTGDH4PkuckR3rosaXdNsTdn+zRV9FHKW7B4sGOrphX
+  static_tokens: {}
+django:
+  admin:
+    email: null
+    password: ctyadc0prys18fnci7vkyc86rgeahdtiu05dzhru
+    username: admin
+  csrf_trusted_origins:
+  - http://localhost
+  - https://localhost
+  debug: false
+  force_script_name: /kabinet
+  hosts:
+  - '*'
+  secret_key: '!!&86l#!ouyhm2yeh&(6=m707=jloe%^m2)oil-e*49bhk740%'
+postgres:
+  db_name: kabinet
+  engine: django.db.backends.postgresql
+  host: db
+  password: 30ae0f6d873a75e6ca8d25f98033f849
+  port: 5432
+  username: sleepyviolettarsier
+redis:
+  host: redis
+  port: 6379

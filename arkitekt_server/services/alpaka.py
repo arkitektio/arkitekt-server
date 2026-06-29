@@ -52,7 +52,7 @@ class AlpakaConfig(BaseServiceConfig):
         description="Whether the Alpaka service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/alpaka:dev",
+        default="jhnnsrs/alpaka:next",
         description="Docker image for the Alpaka service",
     )
     host: str = Field(

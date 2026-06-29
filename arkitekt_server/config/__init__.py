@@ -51,6 +51,7 @@ from .types import (
 # Re-export utility functions
 from .utils import (
     KeyPair,
+    build_ed25519_key_pair,
     build_key_pair,
     generate_alpha_numeric_string,
     generate_django_secret_key,
@@ -143,6 +144,7 @@ __all__ = [
     # Utils
     "KeyPair",
     "build_key_pair",
+    "build_ed25519_key_pair",
     "generate_alpha_numeric_string",
     "generate_django_secret_key",
     "generate_name",

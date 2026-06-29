@@ -52,7 +52,7 @@ class KabinetConfig(BaseServiceConfig):
         description="Whether the Kabinet service is enabled",
     )
     image: str = Field(
-        default="jhnnsrs/kabinet:dev",
+        default="jhnnsrs/kabinet:next",
         description="Docker image for the Kabinet service",
     )
     host: str = Field(
