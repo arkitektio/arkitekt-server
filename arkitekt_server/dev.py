@@ -254,8 +254,8 @@ def temp_setup(
     The configuration is written to a temporary directory and a ``dokker`` testing
     deployment is built with health checks registered for every enabled web service.
     The deployment is **not** started -- the caller decides when to ``up()``/``down()``.
-    The temporary directory is removed when the context exits, and ``down_on_exit``
-    ensures the docker compose project is torn down if it was started.
+    The temporary directory is removed when the context exits, and the ``testing``
+    teardown policy ensures the docker compose project is torn down if it was started.
 
     Args:
         services: Identifiers of the services to enable. See ``create_test_config``.
@@ -273,8 +273,10 @@ def temp_setup(
         temp_path = Path(temp_dir)
         create_server(temp_path, config)
 
+        # ``testing`` defaults to the "testing" teardown policy, which already
+        # downs the stack (removing volumes/orphans) and tears the project down
+        # on context exit -- no explicit down_on_exit flag is needed.
         setup = testing(temp_path / "docker-compose.yaml")
-        setup.down_on_exit = True
 
         if health_checks:
             _register_health_checks(setup, config)
@@ -305,6 +307,10 @@ def temp_deployment(
         with setup:
             # Check that the setup can be initialized
             assert setup is not None, "Setup could not be initialized"
+
+            # Entering the deployment no longer inspects automatically, so populate
+            # the compose spec before reading it via ``setup.spec``.
+            setup.inspect()
 
             # The gateway is always present, and every deployed service should be too.
             assert setup.spec.find_service("gateway") is not None, (

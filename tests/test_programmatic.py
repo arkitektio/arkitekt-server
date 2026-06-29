@@ -34,18 +34,12 @@ def test_programmatic_temp_server_with_dokker():
             # Check that the setup can be initialized
             assert setup is not None, "Setup could not be initialized"
 
+            spec = setup.inspect()
+
             # Check that the services are correctly set up
-            assert setup.spec.find_service("gateway") is not None, (
-                "Gateway service not found"
-            )
-            assert setup.spec.find_service("rekuest") is not None, (
-                "Rekuest service not found"
-            )
-            assert setup.spec.find_service("mikro") is not None, (
-                "Mikro service not found"
-            )
-            assert setup.spec.find_service("fluss") is not None, (
-                "Fluss service not found"
-            )
+            assert spec.find_service("gateway") is not None, "Gateway service not found"
+            assert spec.find_service("rekuest") is not None, "Rekuest service not found"
+            assert spec.find_service("mikro") is not None, "Mikro service not found"
+            assert spec.find_service("fluss") is not None, "Fluss service not found"
 
         # Here you could add more tests related to dokker if needed

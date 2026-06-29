@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "click>=8.2.1",
     "cryptography>=45.0.5",
-    "dokker>=2.5",
+    "dokker>=2.6",
     "inquirer>=3.4.0",
     "platformdirs>=4.5.1",
     "py-machineid>=1.0.0",

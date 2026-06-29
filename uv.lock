@@ -222,7 +222,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.2.1" },
     { name = "cryptography", specifier = ">=45.0.5" },
-    { name = "dokker", specifier = ">=2.5" },
+    { name = "dokker", specifier = ">=2.6" },
     { name = "inquirer", specifier = ">=3.4.0" },
     { name = "platformdirs", specifier = ">=4.5.1" },
     { name = "py-machineid", specifier = ">=1.0.0" },
@@ -617,7 +617,7 @@ wheels = [
 
 [[package]]
 name = "dokker"
-version = "2.5.0"
+version = "2.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -625,9 +625,9 @@ dependencies = [
     { name = "koil" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/eb/95a55ae2346a4f71f164bc3fcccce2bb7c4c5655270e5c4d9f579f2d1b2e/dokker-2.5.0.tar.gz", hash = "sha256:cc2a677d4ad36a087f98a4d4992468a1334dc9d3feffa2c871bbcabaac90dc59", size = 23278, upload-time = "2026-06-11T21:53:21.01Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/3a/6a4f919e9408f2e0e4a6bd330d81e0640aa6fa3917db9239b175938e2a34/dokker-2.6.0.tar.gz", hash = "sha256:f42ea7424a91a9e0f60fd34905603cec9926121be36e52a3683cd5e200c9bd92", size = 26718, upload-time = "2026-06-29T14:23:59.267Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/a7/54e5720169b9c6356f46f8d9eecee39f9a40b262ab04142a3def4a924aa7/dokker-2.5.0-py3-none-any.whl", hash = "sha256:e9b89b4284494f5c050a47714954ab81a3156f7277d72fb2e3c83d5f88599aba", size = 29038, upload-time = "2026-06-11T21:53:20.17Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/cb/77fd1c9761935281b815710d9af2c0d582304d03446d83ba2cffcd9b63ab/dokker-2.6.0-py3-none-any.whl", hash = "sha256:3a95502d50066334a8c191ac20390fcee31745956dea3e654f564143904b8e8a", size = 32549, upload-time = "2026-06-29T14:23:58.275Z" },
 ]
 
 [[package]]

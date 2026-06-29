@@ -52,7 +52,6 @@ def test_run_fakts():
         )
 
         setup = testing(docker_compose_file)
-        setup.down_on_exit = True
 
         for service in ["rekuest", "mikro", "fluss", "lok", "kabinet"]:
             setup.add_health_check(
